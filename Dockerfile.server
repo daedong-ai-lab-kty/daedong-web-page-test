@@ -17,8 +17,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 # RUN pip uninstall openai==1.58.1 fnllm graphrag -y
-RUN pip install openai==1.58.2
-RUN pip install graphrag==0.16.0
+RUN pip install openai==1.58.1
+RUN pip install graphrag==0.3.6
 
 # 6. 소스 코드 복사
 COPY . .

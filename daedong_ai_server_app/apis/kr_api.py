@@ -152,3 +152,125 @@ async def kr_ai_server_test(chat_req: ChatRequest):
         media_type='text/event-stream'
     )
 
+
+@router.post("/kr_ai_server")
+async def kr_ai_server(chat_req: ChatRequest):
+# def kr_ai_server_test(chat_req: ChatRequest):
+
+    ## Messages
+    # model = request.json.get("model")
+    # messages = request.json.get("messages")
+    model = chat_req.model
+    messages = chat_req.messages
+    
+    print(f'Model: {model}')
+    print(f'Messages: {messages}')
+
+    ## Input parsing
+    query = message_parsing(messages, recent_message_num=2)
+    print(f' ==> Query:\n{query}')
+    
+    ## LLM
+    load_dotenv()
+    llm_config['llm']['api_key'] = os.getenv('token')
+    # print(config['llm']['api_key'])
+    
+    llm = get_llm(llm_config)
+    
+    ## Routing
+    domains = web_config.KR_DOMAINS
+    domain_routing_response = query_domain_routing(query, domains, llm, llm_config)
+    referencece = get_domain_info(domain_routing_response)
+
+    reference = referencece['reference']
+    root_folder = referencece['root_folder']
+
+    ## RAG Searching
+    if root_folder is not None:
+
+        config_path = f'{root_folder}/settings.yaml'
+        data_path = None #None #root_folder #f'{root_folder}/output'
+        search_method = rag_config.SEARCH_METHOD
+        community_level = rag_config.COMMUNITY_LEVEL
+        response_type = rag_config.RESPONSE_TYPE
+        streaming = True
+        context_info_flag = False
+        
+        if search_method == 'local':
+
+            # stream_gen = cli.run_local_search(
+            #     config_path,
+            #     data_path,
+            #     root_folder,
+            #     community_level,
+            #     response_type,
+            #     streaming,
+            #     query,
+            #     context_info_flag = context_info_flag,
+            #     system_prompt = LOCAL_SEARCH_SYSTEM_PROMPT,
+            # )
+            async_rag_stream = await cli.run_local_search(
+                config_path,
+                data_path,
+                root_folder,
+                community_level,
+                response_type,
+                streaming,
+                query, 
+                context_info_flag = context_info_flag,
+                system_prompt = LOCAL_SEARCH_SYSTEM_PROMPT,
+            )
+            
+        # if search_method == 'global':
+        #     response, context_data = cli.run_global_search(
+        #         config_path,
+        #         data_path,
+        #         root_folder,
+        #         community_level,
+        #         response_type,
+        #         streaming,
+        #         query,
+            
+    # else:
+
+    #     llm_config['llm']['model'] = 'gpt-4.1'
+    #     llm = get_llm(llm_config)
+
+    #     sync_llm_stream = llm.generate(
+    #         messages=[
+    #             # {"role": "system", "content": query},
+    #             {"role": "user", "content": query},
+    #         ],
+    #         streaming=True, 
+    #         callbacks=None,
+    #         model=llm_config['llm']['model'],
+    #         temperature=llm_config['llm']['temperature'],
+    #         max_tokens=llm_config['llm']['max_tokens'],
+    #         top_p=llm_config['llm']['top_p']
+    #         # **config['llm'],
+    #     )
+
+    # # 새로운 래퍼(wrapper) 제너레이터 정의
+    # async def final_stream_wrapper(source_stream):
+    #     # 원래 스트림에서 모든 데이터를 그대로 전달
+    #     async for item in source_stream:
+    #         yield item
+    #     # 원래 스트림이 끝나면 'END!' 신호를 추가
+    #     yield 'END!'
+
+    # # 래퍼를 사용해 최종 스트림을 만듦
+    # async_rag_stream = final_stream_wrapper(sync_llm_stream)
+    
+    ## Dummy
+    # response = messages
+    # domain = "Test"
+    # async_data_stream = get_data_from_service()
+    
+    # return Response(stream_with_context(response), mimetype='text/event-stream'), 200
+    # return StreamingResponse(sync_stream_gen(response), media_type='text/event-stream')
+    return StreamingResponse(
+        async_stream_generator(reference=reference, async_data_source=async_rag_stream), 
+        media_type='text/event-stream'
+    )
+
+
