@@ -5,5 +5,5 @@ from flask_cors import CORS
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import WebConfig
+from configs.config import WebConfig
 

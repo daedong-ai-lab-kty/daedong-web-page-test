@@ -1,0 +1,29 @@
+llm:
+  api_key: ${GRAPHRAG_API_KEY}
+  type: openai_chat # or azure_openai_chat
+  model: gpt-4o-mini
+  model_supports_json: true # recommended if this is available for your model.
+  max_tokens: 2000
+  request_timeout: 180.0
+  api_base: null #https://<instance>.openai.azure.com
+  api_version: 2024-02-15-preview
+  organization: null #<organization_id>
+  deployment_name: null #<azure_model_deployment_name>
+  ## set a leaky bucket throttle
+  tokens_per_minute: 0 #150_000 
+  ## set a leaky bucket throttle
+  requests_per_minute: 0 #10_000 
+  ## set to -1 for dynamic retry logic (most optimal setting based on server response)
+  max_retries: -1 #10
+  # max_retry_wait: 10.0
+  ## whether to sleep when azure suggests wait-times
+  sleep_on_rate_limit_recommendation: true 
+  ## the number of parallel inflight requests that may be made
+  concurrent_requests: 25 
+  ## temperature for sampling
+  temperature: 0 
+  ## top-p sampling
+  top_p: 1.0
+  ## Number of completions to generate
+  n: 1 
+  cognitive_services_endpoint: null

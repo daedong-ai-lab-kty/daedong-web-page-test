@@ -56,3 +56,4 @@ def create_app(PUBLIC_IP, HOST, PORT):
         return {"status": "ok", "message": f"Hello from the server running on port {PORT}!"}
 
     return app
+    

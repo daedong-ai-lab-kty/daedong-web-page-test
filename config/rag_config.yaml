@@ -1,0 +1,4 @@
+rag:
+  community_level: 2
+  response_type: 'Multiple Paragraphs'
+  search_method: 'local'

@@ -13,6 +13,8 @@ docker network create daedong_ai_server_network
 ### E.g. docker build --build-arg SERVER_PORT=8001 -t daedong_ai_server_env -f Dockerfile.server .
 docker build --build-arg SERVER_PORT={PORT} -t daedong_ai_server_env -f Dockerfile.server .
 
+## Build '.env': {token}
+
 ## Docker Run Container
 export PUBLIC_IP=$(curl -s ifconfig.me)
 ### E.g. docker run --rm -d --name daedong_ai_server -p 8001:8001 --network daedong_ai_server_network -e PUBLIC_IP=$PUBLIC_IP daedong_ai_server_env
@@ -58,7 +60,8 @@ Communication Test
     * 'test-dev': 테스트-포트 운영계 통신 검증
 
 ```
-python utils/web/ai_daedong_server_communication_test.py
+docker exec -it daedong_ai_server bash
+python web/ai_daedong_server_communication_test.py
 ```
 
 
