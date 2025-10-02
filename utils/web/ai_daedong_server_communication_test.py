@@ -15,6 +15,9 @@ class DaedongAPIClient:
         elif environment == 'prod':
             self.base_url = "https://tms.daedong.co.kr/api"
             print("Production (prod) 환경으로 설정되었습니다.")
+        elif environment == 'test-dev':
+            self.base_url = "https://tms-agri-dev.daedong.co.kr/api/v1.0/chatbot/ragTest"
+            print("Production (prod) 환경으로 설정되었습니다.")
         else:
             raise ValueError("환경은 'dev' 또는 'prod' 중 하나여야 합니다.")
 
@@ -128,7 +131,7 @@ def main():
     parser.add_argument(
         '--env', 
         type=str, 
-        choices=['dev', 'prod'], 
+        choices=['dev', 'prod', 'test-dev'], 
         default='prod',
         help="테스트할 환경을 선택합니다 (dev 또는 prod)"
     )
