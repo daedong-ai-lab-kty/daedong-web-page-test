@@ -52,9 +52,10 @@ docker rmi -f daedong_ai_server_env
 Communication Test
 ============
 
-* choices=['dev', 'prod']
-    * 'dev': 개발계 테스트
-    * 'prod': 운영계 테스트
+* choices=['dev', 'prod', 'test-dev]
+    * 'dev': 배포-포트 개발계 통신 검증
+    * 'prod': 배포-포트 운영계 통신 검증
+    * 'test-dev': 테스트-포트 운영계 통신 검증
 
 ```
 python utils/web/ai_daedong_server_communication_test.py

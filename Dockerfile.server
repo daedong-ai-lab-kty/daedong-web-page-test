@@ -24,4 +24,4 @@ COPY . .
 EXPOSE ${PORT}
 
 # 8. 컨테이너 실행 시 수행할 명령어
-CMD ["/bin/sh", "-c", "uvicorn daedong_ai_server:app --host $HOST --port $PORT"]
+CMD ["/bin/sh", "-c", "uvicorn daedong_ai_server:daedong_ai_server_app --host $HOST --port $PORT"]
