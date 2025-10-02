@@ -10,7 +10,6 @@ jupyterlab
 torchvision
 torchaudio
 tokenizers
-graphrag
 pymupdf
 transformers
 datasets
@@ -24,7 +23,7 @@ ollama
 sentence-transformers
 bitsandbytes
 deepspeed
-openai==1.50.2
+openai
 tiktoken
 lancedb
 langchain

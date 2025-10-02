@@ -11,7 +11,8 @@ class WebConfig:
             f'GX_트랙터': f'rag_db/graphrag_{DEFAULT_VERSION}_GX',
             f'RT_운반로봇_RT100': f'rag_db/graphrag_{DEFAULT_VERSION}_RT100',
             f'DH_콤바인_DH6135': f'rag_db/graphrag_{DEFAULT_VERSION}_DH6135',
-            f'HX_트랙터_HX1300_HX1400': f'rag_db/graphrag_{DEFAULT_VERSION}_NEW_HX',
+            f'HX_트랙터_HX1300': f'rag_db/graphrag_{DEFAULT_VERSION}_NEW_HX',
+            f'HX_트랙터_HX1400': f'rag_db/graphrag_{DEFAULT_VERSION}_NEW_HX',
             f'DRP_이앙기_DRP80': f'rag_db/graphrag_{DEFAULT_VERSION}_DRP80',
             f'LK_트랙터_LK2805': f'rag_db/graphrag_{DEFAULT_VERSION}_LK',
             f'NX_트랙터_NX450': f'rag_db/graphrag_{DEFAULT_VERSION}_NX',
@@ -26,7 +27,8 @@ class WebConfig:
             f'GX_트랙터': '[GX 트랙터 유저 메뉴얼], [GX 트랙터 카탈로그]',
             f'RT_운반로봇_RT100': '[RT100 운반로봇 유저 메뉴얼], [RT100 운반로봇 카탈로그]',
             f'DH_콤바인_DH6135': '[DH 콤바인 유저 메뉴얼], [DH 콤바인 카탈로그]',
-            f'HX_트랙터_HX1300_HX1400': '[New HX 트랙터 유저 메뉴얼], [New HX 트랙터 카탈로그]',
+            f'HX_트랙터_HX1300': '[New HX 트랙터 유저 메뉴얼], [New HX 트랙터 카탈로그]',
+            f'HX_트랙터_HX1400': '[New HX 트랙터 유저 메뉴얼], [New HX 트랙터 카탈로그]',
             f'DRP_이앙기_DRP80': '[DRP 이앙기 유저 메뉴얼], [DRP 이앙기 카탈로그]',
             f'LK_트랙터_LK2805': '[LK 트랙터 유저 메뉴얼], [LK 트랙터 카탈로그]',
             f'NX_트랙터_NX450': '[NX 트랙터 유저 메뉴얼], [NX 트랙터 카탈로그]',
@@ -37,7 +39,8 @@ class WebConfig:
             f'기타': None   
         }
 
-        self.KR_DOMAINS = list(self.DOMAIN_TO_FOLDER_MAP.keys()) + ['기타']
+        self.KR_DOMAINS = list(self.DOMAIN_TO_FOLDER_MAP.keys())
+        print(' - KR_DOMAINS:', self.KR_DOMAINS)
 
 
 class RagConfig:

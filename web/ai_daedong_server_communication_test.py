@@ -144,23 +144,24 @@ def main():
     client = DaedongAPIClient(environment=args.env)
     
     # 챗봇에게 질문
-    question_to_ask_1 = "농업" 
-    print('='*50)
-    print('question_to_ask_1:', question_to_ask_1)
-    client.ask_question_stream(question_to_ask_1)
-    print('='*50)
-
-    question_to_ask_2 = "HX1400L-2C 에어클리너 필터 청소하는 법"
-    print('='*50)
-    print('question_to_ask_2:', question_to_ask_2)
-    client.ask_question_stream(question_to_ask_2)
-    print('='*50)
-
-    question_to_ask_3 = "Question4"
-    print('='*50)
-    print('question_to_ask_3:', question_to_ask_3)
-    client.ask_question_stream(question_to_ask_3)
-    print('='*50)
+    questions_list = [
+        "농업",
+        "딸기 잘 기르는법",
+        "배 병충해 치료",
+        "태풍 온다는데, 농작물 어떻게 할까?",
+        "HX1400L-2C 에어클리너 필터 청소하는 법",
+        "GX 트랙터 비교",
+        "RT100 작업기 수리 방법", 
+        "영농일지 작성 방법",
+        "영농 지원 리스트",
+        "총 제작 방법",
+        "대동 제품들 중에 소작농 추천"
+    ]
+    for q in questions_list:
+        print('='*50)
+        print('question_to_ask_1:', q)
+        client.ask_question_stream(q)
+        print('='*50)
 
 if __name__ == "__main__":
     main()
