@@ -193,9 +193,17 @@ async def kr_ai_server(chat_req: ChatRequest):
 
     reference = domain_info['reference']
     root_folder = domain_info['root_folder']
+    domain = domain_info['domain_routing_response']
+    print(" - Selected Domain:", domain)
+
+    ## Business Support
+    if domain == '지원사업':
+        sql_filter = sql_extraction(query, llm, llm_config)
+        async_response_stream = await business_list_filtering(sql_filter, llm, llm_config, \
+            stream=True, table_name=util_config.BUSINESS_LIST_TABLE_NAME, text_path=root_folder)
 
     ## RAG Searching
-    if root_folder is not None:
+    elif root_folder is not None:
 
         config_path = f'{root_folder}/settings.yaml'
         data_path = None #None #root_folder #f'{root_folder}/output'
@@ -218,7 +226,7 @@ async def kr_ai_server(chat_req: ChatRequest):
             #     context_info_flag = context_info_flag,
             #     system_prompt = LOCAL_SEARCH_SYSTEM_PROMPT,
             # )
-            async_rag_stream = await cli.run_local_search(
+            async_response_stream = await cli.run_local_search(
                 config_path,
                 data_path,
                 root_folder,
@@ -278,8 +286,6 @@ async def kr_ai_server(chat_req: ChatRequest):
     # return Response(stream_with_context(response), mimetype='text/event-stream'), 200
     # return StreamingResponse(sync_stream_gen(response), media_type='text/event-stream')
     return StreamingResponse(
-        async_stream_generator(reference=reference, async_data_source=async_rag_stream), 
+        async_stream_generator(reference=reference, async_data_source=async_response_stream), 
         media_type='text/event-stream'
     )
-
-

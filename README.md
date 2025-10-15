@@ -61,7 +61,7 @@ Communication Test
 
 ```
 docker exec -it daedong_ai_server bash
-python web/ai_daedong_server_communication_test.py
+python web/ai_daedong_server_communication_test.py --env {dev|prod|test-dev}
 ```
 
 
