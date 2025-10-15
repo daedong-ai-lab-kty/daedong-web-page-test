@@ -17,4 +17,5 @@ daedong_ai_server_app = create_app(PUBLIC_IP, HOST, PORT)
 if __name__ == "__main__":
     print(f"Starting server on {HOST}:{PORT}")
     uvicorn.run(daedong_ai_server_app, host=HOST, port=PORT)
-
+    
+    

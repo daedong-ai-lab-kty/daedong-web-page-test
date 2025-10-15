@@ -1,6 +1,8 @@
 import requests
 import json
 import argparse
+import pandas as pd
+from datetime import datetime
 
 class DaedongAPIClient:
     """
@@ -124,6 +126,7 @@ class DaedongAPIClient:
                 
                 print("\n\n스트리밍 종료.")
                 # print(f"전체 수신 텍스트:\n{full_response_text}")
+                return full_response_text.strip()
 
         except requests.exceptions.RequestException as e:
             print(f"질문 중 오류 발생: {e}")
@@ -155,13 +158,33 @@ def main():
         "영농일지 작성 방법",
         "영농 지원 리스트",
         "총 제작 방법",
-        "대동 제품들 중에 소작농 추천"
+        "대동 제품들 중에 소작농 추천",
+        "전남 화순에서 받을 수 있는 보조금 정책",
+        "화순에서 받을 수 있는 보조금 정책",
+        "전라남도에서 받을 수 있는 보조금 정책",
+        "올해 청년이 지원할 수 있는 영농지원사업 추천해줘",
+        "올해 영농인이 지원할 수 있는 영농지원사업 추천해줘"
     ]
+
+    results = []
     for q in questions_list:
         print('='*50)
         print('question_to_ask_1:', q)
-        client.ask_question_stream(q)
+        answer = client.ask_question_stream(q)
         print('='*50)
+
+        results.append({
+            "question": q,
+            "answer": answer 
+        })
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"daedong_chat_results_{timestamp}.xlsx"
+    
+    df = pd.DataFrame(results)
+    df.to_excel(output_filename, index=False)
+    
+    print(f"\n모든 질문과 응답이 '{output_filename}' 파일로 저장되었습니다!")
 
 if __name__ == "__main__":
     main()

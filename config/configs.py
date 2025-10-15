@@ -18,7 +18,7 @@ class WebConfig:
             f'NX_트랙터_NX450': f'rag_db/graphrag_{DEFAULT_VERSION}_NX',
             f'HX_트랙터_HX900': f'rag_db/graphrag_{DEFAULT_VERSION}_HX',
             f'DK_트랙터_DK450': f'rag_db/graphrag_{DEFAULT_VERSION}_DK',
-            f'지원사업': f'rag_db/graphrag_{DEFAULT_VERSION}_GX',#None, 
+            f'지원사업': f'rag_db/graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt', #None, 
             f'agriculture': f'rag_db/graphrag_{DEFAULT_VERSION}_GX',#None,
             f'기타': f'rag_db/graphrag_{DEFAULT_VERSION}_GX', #None
         }
@@ -52,6 +52,12 @@ class RagConfig:
         self.SEARCH_METHOD = config['rag']['search_method']
 
 
+class UtilConfig:
+
+    def __init__(self, config):
+
+        self.BUSINESS_LIST_TABLE_NAME = config['util']['business_list_table_name']
+
 ## Config
 config_loader = ConfigYamlLoader()
 
@@ -65,3 +71,7 @@ web_config = WebConfig(web_config)
 rag_config_path = 'config/rag_config.yaml'
 rag_config = config_loader.load_config(rag_config_path)
 rag_config = RagConfig(rag_config)
+
+util_config_path = 'config/util_config.yaml'
+util_config = config_loader.load_config(util_config_path)
+util_config = UtilConfig(util_config)

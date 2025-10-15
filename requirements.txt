@@ -17,7 +17,6 @@ accelerate
 peft
 flask
 flask_cors
-langchain
 gensim
 ollama
 sentence-transformers

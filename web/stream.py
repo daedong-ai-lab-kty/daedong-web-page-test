@@ -4,6 +4,14 @@ import datetime
 import json
 import time
 
+async def sync_to_async_gen(sync_gen):
+    for chunk in sync_gen:
+        yield chunk
+        await asyncio.sleep(0)
+
+    yield 'END!'
+    await asyncio.sleep(0)
+
 async def get_data_from_service():
     for i in range(5):
         yield f"데이터 청크 {i} "

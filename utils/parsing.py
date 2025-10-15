@@ -10,7 +10,7 @@ def message_parsing(messages, recent_message_num=1):
     ][-recent_message_num:]
 
     formatted_messages = json.dumps(recent_messages, ensure_ascii=False)
-
+    
     return formatted_messages
     
 
