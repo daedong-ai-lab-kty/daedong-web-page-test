@@ -9,6 +9,10 @@ Docker & Server Commands
 ## Docker Network
 docker network create daedong_ai_server_network
 
+## 기존 이미지 삭제
+docker stop daedong_ai_server
+docker rmi -f daedong_ai_server_env
+
 ## Docker Build Image
 ### E.g. docker build --build-arg SERVER_PORT=8001 -t daedong_ai_server_env -f Dockerfile.server .
 docker build --build-arg SERVER_PORT={PORT} -t daedong_ai_server_env -f Dockerfile.server .
@@ -51,8 +55,11 @@ docker rmi -f daedong_ai_server_env
 ```
 
 
-Communication Test
+Response & API Test
 ============
+
+<details>
+<summary>Web Test</summary>
 
 * choices=['dev', 'prod', 'test-dev]
     * 'dev': 배포-포트 개발계 통신 검증
@@ -63,6 +70,8 @@ Communication Test
 docker exec -it daedong_ai_server bash
 python web/ai_daedong_server_communication_test.py --env {dev|prod|test-dev}
 ```
+
+</details>
 
 
 Sample Web Test

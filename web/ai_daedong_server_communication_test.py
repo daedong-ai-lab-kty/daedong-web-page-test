@@ -42,7 +42,8 @@ class DaedongAPIClient:
         
         print("\n인증 토큰을 발급받는 중...")
         try:
-            response = requests.post(self.login_url, json=self.credentials, timeout=10)
+            response = requests.post(self.login_url, \
+                json=self.credentials, timeout=(10, 90))
             response.raise_for_status()  
 
             self.token = response.json().get("data")["accessToken"] 
@@ -91,7 +92,7 @@ class DaedongAPIClient:
                 
                 print("\n챗봇 응답 (스트리밍):")
                 full_response_text = ""
-
+                
                 # SSE 형식은 라인 단위로 오는 경우가 많으므로 iter_lines() 사용
                 for line in response.iter_lines():
 
@@ -100,18 +101,18 @@ class DaedongAPIClient:
                         continue
                     
                     try:
-                        # 1. 수신된 바이트(byte)를 'utf-8'로 직접 디코딩
+                        ## 1. 수신된 바이트(byte)를 'utf-8'로 직접 디코딩
                         decoded_line = line.decode('utf-8')
-                            
-                        # 2. SSE 형식("data: ") 확인 및 제거
+                        
+                        ## 2. SSE 형식("data: ") 확인 및 제거
                         if decoded_line.startswith('data:'):
                             json_str = decoded_line[5:].strip()
                             
-                            # 3. 스트리밍 종료 신호 확인
+                            ## 3. 스트리밍 종료 신호 확인
                             if json_str == "[DONE]":
                                 break
                             
-                            # 4. JSON 문자열을 파싱하여 실제 content 추출
+                            ## 4. JSON 문자열을 파싱하여 실제 content 추출
                             chunk_data = json.loads(json_str)
                             content = chunk_data.get('choices', [{}])[0].get('delta', {}).get('content', '')
                             
@@ -120,10 +121,10 @@ class DaedongAPIClient:
                                 full_response_text += content
                             
                     except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                        # 디코딩 또는 JSON 파싱 중 오류 발생 시 디버깅을 위해 출력
+                        ## 디코딩 또는 JSON 파싱 중 오류 발생 시 디버깅을 위해 출력
                         print(f"\n[파싱 오류 발생] {e}")
                         continue
-                
+                    
                 print("\n\n스트리밍 종료.")
                 # print(f"전체 수신 텍스트:\n{full_response_text}")
                 return full_response_text.strip()
@@ -143,10 +144,10 @@ def main():
     )
     args = parser.parse_args()
     
-    # API 클라이언트 인스턴스 생성
+    ## API 클라이언트 인스턴스 생성
     client = DaedongAPIClient(environment=args.env)
     
-    # 챗봇에게 질문
+    ## 챗봇에게 질문
     questions_list = [
         "농업",
         "딸기 잘 기르는법",
@@ -162,14 +163,13 @@ def main():
         "전남 화순에서 받을 수 있는 보조금 정책",
         "화순에서 받을 수 있는 보조금 정책",
         "전라남도에서 받을 수 있는 보조금 정책",
-        "올해 청년이 지원할 수 있는 영농지원사업 추천해줘",
-        "올해 영농인이 지원할 수 있는 영농지원사업 추천해줘"
+        "올해 영농인이 지원할 수 있는 영농지원사업 추천해줘",
     ]
 
     results = []
     for q in questions_list:
         print('='*50)
-        print('question_to_ask_1:', q)
+        print(' - Question:', q)
         answer = client.ask_question_stream(q)
         print('='*50)
 

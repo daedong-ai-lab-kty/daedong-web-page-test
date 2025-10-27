@@ -21,8 +21,6 @@ from graphrag_lib.graphrag.query.structured_search.local_search.system_prompt im
 from utils.sql_extraction.sql_extractor import sql_extraction
 from utils.recommand_business_list.business_list_filter import business_list_filtering
 
-# kr_api_bp = Blueprint('kr_ai_server_test', __name__)
-# print(" =>> kr_api.py: Blueprint 'kr_api_bp'가 정의되었습니다.")
 router = APIRouter()
 
 class ChatMessage(BaseModel):

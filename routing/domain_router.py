@@ -24,7 +24,7 @@ def query_domain_routing(query, domains, llm, llm_config):
         # **config['llm'],
     )
 
-    print('Domain routing:', domain_routing_response)
+    # print('Domain routing:', domain_routing_response)
     return domain_routing_response
 
 

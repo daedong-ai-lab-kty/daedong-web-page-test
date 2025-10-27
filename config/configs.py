@@ -20,6 +20,7 @@ class WebConfig:
             f'DK_트랙터_DK450': f'rag_db/graphrag_{DEFAULT_VERSION}_DK',
             f'지원사업': f'rag_db/graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt', #None, 
             f'agriculture': f'rag_db/graphrag_{DEFAULT_VERSION}_GX',#None,
+            f'영농일지': f'rag_{DEFAULT_VERSION}_farming_diary', #None
             f'기타': f'rag_db/graphrag_{DEFAULT_VERSION}_GX', #None
         }
 
@@ -34,6 +35,7 @@ class WebConfig:
             f'NX_트랙터_NX450': '[NX 트랙터 유저 메뉴얼], [NX 트랙터 카탈로그]',
             f'HX_트랙터_HX900': '[HX 트랙터 유저 메뉴얼], [HX 트랙터 카탈로그]',
             f'DK_트랙터_DK450': '[DK 트랙터 유저 메뉴얼], [DK 트랙터 카탈로그]',
+            f'영농일지': None,
             f'지원사업': '[지원사업 리스트]', 
             f'agriculture': '[농진청 농업 자료]', 
             f'기타': None   
