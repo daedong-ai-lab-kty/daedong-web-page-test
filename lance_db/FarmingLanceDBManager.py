@@ -536,3 +536,108 @@ class FarmingLanceDBManager:
             cur = self.conn.cursor()
             cur.execute("DELETE FROM records WHERE person = ?", (person,))
             self.conn.commit()
+            
+    def add_entry_and_persist(self, person_folder_identifier: str, entry: Dict[str, Any], target_filename: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Append `entry` to a JSON file under the person's folder and persist.
+        Returns a dict: {"rec": rec, "file": str(path), "ok": True/False, "error": str or None}
+        Behavior change: if log_{date}.json doesn't exist, DO NOT pick arbitrary existing json (like ids.json).
+        Instead create log_{date}.json (or pick an existing log_{date}* file).
+        """
+        person_folder = self.root / person_folder_identifier
+        _ensure_dir(person_folder)
+        print(f"[add_entry_and_persist] person_folder: {person_folder}")
+
+        date_str = entry.get("date") or time.strftime("%Y-%m-%d")
+        # if explicit target_filename given, use it
+        if target_filename:
+            jf = person_folder / target_filename
+        else:
+            # prefer exact date-named log file
+            cand = person_folder / f"log_{date_str}.json"
+            if cand.exists():
+                jf = cand
+            else:
+                # look for any other files that are clearly log files for that date (e.g. log_2023-09-25_v1.json)
+                pattern = f"log_{date_str}*.json"
+                log_candidates = sorted(person_folder.glob(pattern))
+                if log_candidates:
+                    jf = log_candidates[0]
+                else:
+                    # No existing log file for that date -> create new log_{date}.json
+                    jf = cand
+
+        print(f"[add_entry_and_persist] target file chosen: {jf}")
+
+        # load existing JSON robustly
+        data = None
+        if jf.exists():
+            try:
+                raw = jf.read_text(encoding="utf-8")
+                data = json.loads(raw)
+            except Exception as e:
+                err = f"Failed to parse existing JSON {jf}: {e}"
+                print(f"[add_entry_and_persist] {err}")
+                data = None
+
+        # normalize and append
+        if isinstance(data, dict):
+            if "farming_work_log" in data and isinstance(data["farming_work_log"], list):
+                data["farming_work_log"].append(entry)
+            else:
+                data["farming_work_log"] = data.get("farming_work_log", [])
+                if not isinstance(data["farming_work_log"], list):
+                    data["farming_work_log"] = []
+                data["farming_work_log"].append(entry)
+        elif isinstance(data, list):
+            data.append(entry)
+        else:
+            data = {"farming_work_log": [entry]}
+
+        # atomic write: write to tmp then replace
+        try:
+            tmp = jf.with_suffix(jf.suffix + ".tmp")
+            tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp.replace(jf)
+        except Exception as e:
+            try:
+                jf.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception as e2:
+                err_msg = f"Failed to write JSON file {jf}: {e2}"
+                print(f"[add_entry_and_persist] {err_msg}")
+                return {"rec": None, "file": str(jf), "ok": False, "error": err_msg}
+
+        # refresh mtime
+        mtime = self._get_file_mtime(jf)
+
+        # build record
+        pid, person_name = self._split_person_folder(person_folder_identifier)
+        rid = entry.get("id") or _make_id(entry.get("date", ""), entry.get("time", ""), entry.get("content", ""))
+        rec = {
+            "id": rid,
+            "date": entry.get("date", ""),
+            "time": entry.get("time", ""),
+            "content": entry.get("content", ""),
+            "person": person_folder_identifier,
+            "pid": pid,
+            "person_name": person_name
+        }
+
+        # persist: upsert per-person storage and sqlite index
+        try:
+            self.upsert(person_folder_identifier, [rec])
+        except Exception as e:
+            print(f"[add_entry_and_persist] Warning: upsert failed: {e}")
+
+        try:
+            self._upsert_record_sqlite(rec, str(jf), mtime)
+        except Exception as e:
+            print(f"[add_entry_and_persist] Warning: _upsert_record_sqlite failed: {e}")
+
+        try:
+            self._mark_file_processed(str(jf), mtime)
+        except Exception as e:
+            print(f"[add_entry_and_persist] Warning: _mark_file_processed failed: {e}")
+
+        print(f"[add_entry_and_persist] success: wrote to {jf}")
+        return {"rec": rec, "file": str(jf), "ok": True, "error": None}

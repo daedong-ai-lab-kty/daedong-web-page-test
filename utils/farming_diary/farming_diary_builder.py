@@ -39,7 +39,7 @@ def build_framing_daiary():
     llm = get_llm(llm_config)
 
     farming_diary_builder_prompt = get_farming_diary_builder_prompt()
-
+    
     farming_diary_builder_response = llm.generate(
     messages=[
             # {"role": "system", "content": routing_system_prompt},

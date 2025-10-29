@@ -1,5 +1,6 @@
 import socket
 import threading
+import os 
 
 # from flask import Flask
 # from flask_cors import CORS
@@ -8,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.configs import web_config, llm_config, rag_config, util_config
 from lance_db.FarmingLanceDBManager import FarmingLanceDBManager
-from utils.farming_diary.farming_diary_utils import get_persons, get_all_works_date, get_search_works
+from utils.farming_diary.farming_diary_utils import get_persons, get_all_works_date, get_search_works, add_work
 
 def create_app(PUBLIC_IP, HOST, PORT):
     # app = Flask(__name__)
@@ -22,7 +23,7 @@ def create_app(PUBLIC_IP, HOST, PORT):
         allow_methods=["*"],  
         allow_headers=["*"], 
     )
-
+    
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -62,21 +63,32 @@ def create_app(PUBLIC_IP, HOST, PORT):
         db_root = web_config.DOMAIN_TO_FOLDER_MAP['영농일지']
         app.state.farming_db = FarmingLanceDBManager(root_dir=db_root, use_openai=False)
         db = app.state.farming_db
-
-        def _ingest():
+        
+        def db_ingest():
             try:
                 print(" => Starting ingest_from_server ...")
                 db.ingest_from_server(db_root)
                 print(" => ingest_from_server finished.")
-                print(" => After ingest, tables:")
-                db.print_all_tables()
-                works = get_all_works_date(db, 'taeyong', '2023-09-22')
-                print(' - Works:', works)
+
+                # print(" => After ingest, tables:")
+                
+                # date = '2023-09-25'
+                # time = '15:30'
+                # content = '새 작업 내역 예시'
+                # folder = '1_taeyong' #os.path.join(db_root, '1_taeyong')
+                # add_work(db, folder, date, time, content)
+
+                # works1 = get_all_works_date(db, 'taeyong', '2023-09-22')
+                # # print(' - Works1:', works1)
+
+                # works2 = get_all_works_date(db, 'taeyong', '2023-09-25')
+                # print(' - Works2:', works2)
+
             except Exception as e:
                 print("ingest error:", e)
 
         # 데몬 스레드로 백그라운드 ingest (서버 스타트업 블로킹하지 않음)
-        threading.Thread(target=_ingest, daemon=True).start()
+        threading.Thread(target=db_ingest, daemon=True).start()
         
         # folders = get_persons(db)
         # print('Folders:', folders)
@@ -89,20 +101,19 @@ def create_app(PUBLIC_IP, HOST, PORT):
     async def shutdown_event():
         db = getattr(app.state, "farming_db", None)
         if db is not None:
-            # 필요하면 close() 같은 정리 메서드 호출
             close_fn = getattr(db, "close", None)
             if callable(close_fn):
                 close_fn()
             print(" ==> FarmingLanceDBManager 정리 완료")
-
+    
     @app.get("/")
     def read_root():
         print("Request received at root endpoint.")
         return {"status": "ok", "message": f"Hello from the server running on port {PORT}!"}
-
+        
     # Farming DB
     # farming_db = FarmingLanceDBManager(root_dir=web_config.DOMAIN_TO_FOLDER_MAP['영농일지'], use_openai=False)
     # print("Persons:", farming_db.list_persons())
-
+    
     return app
     

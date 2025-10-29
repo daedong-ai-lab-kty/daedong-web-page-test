@@ -1,4 +1,5 @@
 from typing import List, Dict, Tuple, Any, Optional
+import os
 
 def _person_condition(person: Optional[str]) -> Tuple[str, Tuple[Any, ...]]:
     """
@@ -44,12 +45,12 @@ def get_all_works_date(db, person: Optional[str], date: str) -> List[Dict[str, A
     sql = f"SELECT * FROM records WHERE {cond} AND date = ? ORDER BY mtime ASC"
     query_params = params + (date,)
     rows = db.sql_query(sql, query_params)
-    print(f"SQL query: records for {person!r} on {date}:")
-    if rows:
-        for r in rows:
-            print(r)
-    else:
-        print(" - Works: None")
+    # print(f"SQL query: records for {person!r} on {date}:")
+    # if rows:
+    #     for r in rows:
+    #         print(r)
+    # else:
+    #     print(" - Works: None")
     return rows
 
 def get_search_works(db, person, target):
@@ -66,3 +67,38 @@ def get_search_works(db, person, target):
 #     print("Semantic search results:")
 #     for h in hits:
 #         print(h)
+
+# def add_work(db, folder, date, time, content):
+#     new_entry = {"date": date, "time": time, "content": content}
+#     rec = db.add_entry_and_persist(folder, new_entry)  
+#     print("Inserted record:", rec)
+
+def add_work(db, person_identifier: str, date: str, time_str: str, content: str, target_filename: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Add a work entry and return details including actual written file path.
+    """
+    persons = db.list_persons()
+    resolved = None
+    if person_identifier in persons:
+        resolved = person_identifier
+    else:
+        for p in persons:
+            if "_" in p:
+                pid, name = p.split("_", 1)
+            else:
+                pid, name = "", p
+            if person_identifier == pid or person_identifier == name:
+                resolved = p
+                break
+    if resolved is None:
+        resolved = person_identifier
+
+    entry = {"date": date, "time": time_str, "content": content}
+    try:
+        result = db.add_entry_and_persist(resolved, entry, target_filename=target_filename)
+        print(f"[add_work] add_entry_and_persist returned: {result}")
+        # if result['ok']==False, bubble up or return
+        return result
+    except Exception as e:
+        print(f"[add_work] add_entry failed: {e}")
+        return {"rec": None, "file": None, "ok": False, "error": str(e)}
