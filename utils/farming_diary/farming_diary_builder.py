@@ -29,7 +29,7 @@ def get_args():
     args = parser.parse_args()
     return args
 
-def build_framing_daiary(diar):
+def build_framing_daiary():
 
     ## LLM
     load_dotenv()
@@ -45,10 +45,12 @@ def build_framing_daiary(diar):
             # {"role": "system", "content": routing_system_prompt},
             {"role": "user", "content": farming_diary_builder_prompt},
         ],
-    streaming=True, 
-    model=llm_config['llm']['model'],
-    temperature=llm_config['llm']['temperature'],
-    max_tokens=llm_config['llm']['max_tokens'],
-    top_p=llm_config['llm']['top_p']
-    # **config['llm'],
-)
+        streaming=True, 
+        model=llm_config['llm']['model'],
+        temperature=llm_config['llm']['temperature'],
+        max_tokens=llm_config['llm']['max_tokens'],
+        top_p=llm_config['llm']['top_p']
+        # **config['llm'],
+    )
+
+    print(farming_diary_builder_response)

@@ -5,6 +5,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from lance_db.LanceDB import LanceDB
 from utils.recommand_business_list.business_list_filter_prompt import get_business_list_filter_prompt
 from web.stream import sync_to_async_gen
+from config.configs import web_config, llm_config, rag_config, util_config
 
 async def business_list_filtering(sql_filter, llm, llm_config, \
     stream=True, table_name="knowledge_base", text_path=None):
@@ -18,7 +19,7 @@ async def business_list_filtering(sql_filter, llm, llm_config, \
     # print(support_project_df.columns, support_project_df.head())
 
     ## DB init
-    root_folder_path = 'db_root_folder'
+    root_folder_path = web_config.RAG_DB_ROOT_PATH #'db_root_folder'
     # if not os.path.isfile(root_folder_path):
     db_instance = LanceDB(root_folder_path=root_folder_path)
 

@@ -1,0 +1,538 @@
+# lance_db/FarmingLanceDBManager.py
+import os
+import json
+import hashlib
+import sqlite3
+import threading
+from pathlib import Path
+from typing import List, Dict, Optional, Any, Tuple
+import numpy as np
+from tqdm import tqdm
+import time
+
+# Embedding backend
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    SentenceTransformer = None
+
+# Optional OpenAI embeddings
+try:
+    import openai
+except Exception:
+    openai = None
+
+# Optional FAISS
+try:
+    import faiss
+    _FAISS_AVAILABLE = True
+except Exception:
+    _FAISS_AVAILABLE = False
+
+def _sanitize_person(name: str) -> str:
+    return "".join(c for c in name if c.isalnum() or c in ("_", "-")).strip() or "person"
+
+def _make_id(date: str, time_str: str, content: str) -> str:
+    h = hashlib.sha1()
+    h.update(f"{date}||{time_str}||{content}".encode("utf-8"))
+    return h.hexdigest()
+
+def _ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+class FarmingLanceDBManager:
+    def __init__(self, root_dir: str = "lancedb_data",
+                 sqlite_db_path: Optional[str] = None,
+                 embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+                 use_openai: bool = False):
+        self.root = Path(root_dir)
+        _ensure_dir(self.root)
+        self.use_openai = use_openai
+        self.embedding_model_name = embedding_model_name
+
+        if use_openai and openai is None:
+            raise RuntimeError("openai package not available but use_openai=True")
+
+        # Threading lock for sqlite usage
+        self._sqlite_lock = threading.RLock()
+
+        print('Farming DB root:', self.root)
+
+        # sqlite metadata DB
+        if sqlite_db_path:
+            self.sqlite_path = Path(sqlite_db_path)
+        else:
+            self.sqlite_path = self.root / "metadata.db"
+        self._init_sqlite()
+        # Ensure required columns (pid, person_name) exist
+        self._ensure_table_columns()
+
+    # -----------------------
+    # SQLite init & schema utilities
+    # -----------------------
+    def _init_sqlite(self):
+        # allow usage from multiple threads (we'll serialize access with a lock)
+        self.conn = sqlite3.connect(str(self.sqlite_path), check_same_thread=False)
+        try:
+            cur = self.conn.cursor()
+            cur.execute("PRAGMA journal_mode=WAL;")
+            cur.execute("PRAGMA synchronous=NORMAL;")
+        except Exception:
+            pass
+
+        cur = self.conn.cursor()
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS processed_files (
+            filepath TEXT PRIMARY KEY,
+            mtime REAL
+        )""")
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS records (
+            id TEXT PRIMARY KEY,
+            person TEXT,
+            date TEXT,
+            time TEXT,
+            content TEXT,
+            filepath TEXT,
+            mtime REAL
+        )""")
+        self.conn.commit()
+
+    def _get_existing_columns(self, table_name: str) -> List[str]:
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            cur.execute(f"PRAGMA table_info('{table_name}')")
+            rows = cur.fetchall()
+        return [row[1] for row in rows]  # name is at index 1
+
+    def _ensure_table_columns(self):
+        """
+        Ensure 'records' table has pid and person_name columns.
+        If they are missing, ALTER TABLE to add them.
+        """
+        desired_cols = {
+            "pid": "TEXT",
+            "person_name": "TEXT"
+        }
+        existing = self._get_existing_columns("records")
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            for col, col_type in desired_cols.items():
+                if col not in existing:
+                    try:
+                        cur.execute(f"ALTER TABLE records ADD COLUMN {col} {col_type};")
+                        print(f"Added column '{col}' to records table.")
+                    except Exception as e:
+                        print(f"Warning: failed to add column {col}: {e}")
+            self.conn.commit()
+
+    # -----------------------
+    # Person folder parsing
+    # -----------------------
+    def _split_person_folder(self, folder_name: str) -> Tuple[str, str]:
+        """
+        Parse folder names of the form "id_name" into (pid, person_name).
+        If folder_name doesn't contain an underscore, pid='' and person_name is folder_name.
+        """
+        if not folder_name:
+            return ("", "")
+        folder_name = folder_name.strip()
+        if "_" in folder_name:
+            pid, name = folder_name.split("_", 1)
+            return (pid.strip(), name.strip())
+        else:
+            return ("", folder_name)
+
+    # -----------------------
+    # File path helpers (per-person storage)
+    # -----------------------
+    def _person_dir(self, person: str) -> Path:
+        name = _sanitize_person(person)
+        return self.root / name
+
+    def _meta_path(self, person: str) -> Path:
+        return self._person_dir(person) / "meta.json"
+
+    def _records_path(self, person: str) -> Path:
+        return self._person_dir(person) / "records.jsonl"
+
+    def _embeddings_path(self, person: str) -> Path:
+        return self._person_dir(person) / "embeddings.npy"
+
+    def _ids_path(self, person: str) -> Path:
+        return self._person_dir(person) / "ids.json"
+
+    def _faiss_path(self, person: str) -> Path:
+        return self._person_dir(person) / "faiss.index"
+
+    # -----------------------
+    # Meta / embeddings
+    # -----------------------
+    def _load_meta(self, person: str) -> Dict[str, Any]:
+        p = self._meta_path(person)
+        if p.exists():
+            return json.loads(p.read_text(encoding="utf-8"))
+        return {"count": 0}
+
+    def _save_meta(self, person: str, meta: Dict[str, Any]):
+        p = self._meta_path(person)
+        p.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _compute_embeddings(self, texts: List[str]) -> np.ndarray:
+        if self.use_openai:
+            resp = openai.Embedding.create(input=texts, model="text-embedding-3-small")
+            embs = [r["embedding"] for r in resp["data"]]
+            arr = np.array(embs, dtype=np.float32)
+            norm = np.linalg.norm(arr, axis=1, keepdims=True)
+            norm[norm == 0] = 1.0
+            return arr / norm
+        else:
+            if not hasattr(self, "embed_model") or self.embed_model is None:
+                return np.zeros((len(texts), 1), dtype=np.float32)
+            arr = self.embed_model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+            norm = np.linalg.norm(arr, axis=1, keepdims=True)
+            norm[norm == 0] = 1.0
+            return (arr / norm).astype(np.float32)
+
+    # -----------------------
+    # Upsert / storage
+    # -----------------------
+    def upsert(self, person: str, records: List[Dict[str, Any]]):
+        pdir = self._person_dir(person)
+        _ensure_dir(pdir)
+        records_path = self._records_path(person)
+        ids_path = self._ids_path(person)
+        emb_path = self._embeddings_path(person)
+
+        existing = {}
+        if records_path.exists():
+            with records_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    obj = json.loads(line)
+                    existing[obj["id"]] = obj
+
+        for r in records:
+            rid = r.get("id") or _make_id(r.get("date", ""), r.get("time", ""), r.get("content", ""))
+            r["id"] = rid
+            existing[rid] = r
+
+        all_ids = list(existing.keys())
+        all_texts = [existing[_id].get("content", "") for _id in all_ids]
+        if all_texts:
+            all_embs = self._compute_embeddings(all_texts)
+        else:
+            all_embs = np.zeros((0, 1), dtype=np.float32)
+
+        with records_path.open("w", encoding="utf-8") as f:
+            for _id in all_ids:
+                f.write(json.dumps(existing[_id], ensure_ascii=False) + "\n")
+
+        ids_path.write_text(json.dumps(all_ids, ensure_ascii=False), encoding="utf-8")
+        np.save(str(emb_path), all_embs)
+
+        if _FAISS_AVAILABLE and all_embs.shape[0] > 0:
+            dim = all_embs.shape[1]
+            index = faiss.IndexFlatIP(dim)
+            index.add(all_embs)
+            faiss.write_index(index, str(self._faiss_path(person)))
+        else:
+            fpath = self._faiss_path(person)
+            if fpath.exists():
+                try:
+                    fpath.unlink()
+                except Exception:
+                    pass
+
+        meta = {"count": len(all_ids)}
+        self._save_meta(person, meta)
+
+    def list_persons(self) -> List[str]:
+        return [p.name for p in self.root.iterdir() if p.is_dir()]
+
+    def get_by_person(self, person: str) -> List[Dict[str, Any]]:
+        records_path = self._records_path(person)
+        out = []
+        if records_path.exists():
+            with records_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        out.append(json.loads(line))
+        return out
+
+    def query_by_text(self, person: str, text: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        ids_path = self._ids_path(person)
+        emb_path = self._embeddings_path(person)
+        if not ids_path.exists() or not emb_path.exists():
+            return []
+
+        ids = json.loads(ids_path.read_text(encoding="utf-8"))
+        embs = np.load(str(emb_path))
+        q_emb = self._compute_embeddings([text])[0:1]
+
+        if _FAISS_AVAILABLE and self._faiss_path(person).exists():
+            index = faiss.read_index(str(self._faiss_path(person)))
+            D, I = index.search(q_emb, min(top_k, embs.shape[0]))
+            hits = []
+            for idx in I[0]:
+                if idx < 0 or idx >= len(ids):
+                    continue
+                rid = ids[idx]
+                hits.append((rid, float(D[0][idx])))
+        else:
+            sims = (embs @ q_emb.T).reshape(-1)
+            top_idx = np.argsort(-sims)[:top_k]
+            hits = [(ids[int(i)], float(sims[int(i)])) for i in top_idx]
+
+        all_records = {r["id"]: r for r in self.get_by_person(person)}
+        out = []
+        for rid, score in hits:
+            rec = all_records.get(rid)
+            if rec:
+                rec_copy = dict(rec)
+                rec_copy["_score"] = score
+                out.append(rec_copy)
+        return out
+
+    # -----------------------
+    # SQLite helper methods
+    # -----------------------
+    def _get_file_mtime(self, path: Path) -> float:
+        try:
+            return path.stat().st_mtime
+        except Exception:
+            return 0.0
+
+    def _is_file_processed(self, filepath: str, mtime: float) -> bool:
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            cur.execute("SELECT mtime FROM processed_files WHERE filepath = ?", (filepath,))
+            row = cur.fetchone()
+            if not row:
+                return False
+            return float(row[0]) >= float(mtime)
+
+    def _mark_file_processed(self, filepath: str, mtime: float):
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            cur.execute("REPLACE INTO processed_files(filepath, mtime) VALUES (?, ?)", (filepath, float(mtime)))
+            self.conn.commit()
+
+    def _upsert_record_sqlite(self, rec: Dict[str, Any], filepath: str, mtime: float):
+        """
+        Upsert record into sqlite 'records' table. This will include pid and person_name
+        if those columns exist in the table.
+        """
+        with self._sqlite_lock:
+            existing_cols = self._get_existing_columns("records")
+            cols = ["id", "person", "date", "time", "content", "filepath", "mtime"]
+            vals = [
+                rec["id"],
+                rec.get("person", ""),
+                rec.get("date", ""),
+                rec.get("time", ""),
+                rec.get("content", ""),
+                filepath,
+                float(mtime)
+            ]
+            if "pid" in existing_cols:
+                cols.append("pid")
+                vals.append(rec.get("pid", ""))
+            if "person_name" in existing_cols:
+                cols.append("person_name")
+                vals.append(rec.get("person_name", ""))
+
+            placeholders = ",".join("?" for _ in cols)
+            cols_sql = ",".join(cols)
+            sql = f"REPLACE INTO records({cols_sql}) VALUES ({placeholders})"
+            cur = self.conn.cursor()
+            cur.execute(sql, tuple(vals))
+            self.conn.commit()
+
+    def sql_query(self, sql: str, params: tuple = ()):
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            cur.execute(sql, params)
+            cols = [c[0] for c in cur.description] if cur.description else []
+            rows = cur.fetchall()
+        out = [dict(zip(cols, r)) for r in rows]
+        return out
+
+    def list_tables(self) -> List[str]:
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+            rows = cur.fetchall()
+        return [r[0] for r in rows]
+
+    def dump_all_tables(self) -> Dict[str, List[Dict[str, Any]]]:
+        out: Dict[str, List[Dict[str, Any]]] = {}
+        tables = self.list_tables()
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            for table in tables:
+                cur.execute(f"PRAGMA table_info('{table}')")
+                cols_info = cur.fetchall()
+                cols = [c[1] for c in cols_info] if cols_info else []
+                cur.execute(f"SELECT * FROM '{table}'")
+                rows = cur.fetchall()
+                out[table] = [dict(zip(cols, r)) for r in rows]
+        return out
+
+    def print_all_tables(self):
+        data = self.dump_all_tables()
+        for table, rows in data.items():
+            print("=" * 40)
+            print(f"TABLE: {table} (rows: {len(rows)})")
+            if rows:
+                cols = list(rows[0].keys())
+                print(" | ".join(cols))
+                for r in rows:
+                    vals = [str(r.get(c, "")) for c in cols]
+                    print(" | ".join(vals))
+            else:
+                print("(empty)")
+        print("=" * 40)
+
+    # -----------------------
+    # JSON normalization helper (moved inside class to avoid NameError)
+    # -----------------------
+    def _extract_entries_from_json(self, data) -> List[Dict[str, Any]]:
+        """
+        Normalize multiple possible JSON layouts into a list of entry dicts
+        where each entry is expected to have keys like 'date','time','content'.
+        """
+        out: List[Dict[str, Any]] = []
+        if isinstance(data, dict):
+            val = data.get("farming_work_log")
+            if isinstance(val, list):
+                out.extend([v for v in val if isinstance(v, dict)])
+            elif isinstance(val, dict):
+                out.append(val)
+            else:
+                if "content" in data or "date" in data:
+                    out.append(data)
+            if not out:
+                for k, v in data.items():
+                    if isinstance(v, list) and v and isinstance(v[0], dict):
+                        candidate = [item for item in v if isinstance(item, dict)]
+                        if candidate:
+                            out.extend(candidate)
+        elif isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    if "farming_work_log" in item:
+                        fw = item.get("farming_work_log")
+                        if isinstance(fw, list):
+                            out.extend([v for v in fw if isinstance(v, dict)])
+                        elif isinstance(fw, dict):
+                            out.append(fw)
+                    else:
+                        if "content" in item or "date" in item or "time" in item:
+                            out.append(item)
+        return out
+
+    # -----------------------
+    # Ingest from server (robust JSON shapes)
+    # -----------------------
+    def ingest_from_server(self, server_root: str, person_dir_pattern: Optional[str] = None):
+        sroot = Path(server_root)
+        if not sroot.exists():
+            raise FileNotFoundError(f"{server_root} not found")
+
+        for p in sroot.iterdir():
+            if not p.is_dir():
+                continue
+            pname = p.name
+            if person_dir_pattern and person_dir_pattern not in pname:
+                continue
+
+            pid, person_name = self._split_person_folder(pname)
+            person_folder_identifier = pname
+            collected_records = []
+            for jf in p.rglob("*.json"):
+                jpath = str(jf.resolve())
+                mtime = self._get_file_mtime(jf)
+                try:
+                    if self._is_file_processed(jpath, mtime):
+                        continue
+                except Exception as e:
+                    print("Warning: _is_file_processed error:", e)
+
+                try:
+                    raw = jf.read_text(encoding="utf-8")
+                    data = json.loads(raw)
+                except Exception as e:
+                    print(f"Warning: failed to parse JSON file {jpath}: {e}")
+                    continue
+
+                try:
+                    entries = self._extract_entries_from_json(data)
+                except Exception as e:
+                    print(f"Warning: error while extracting entries from {jpath}: {e}")
+                    entries = []
+
+                if not isinstance(entries, list):
+                    if isinstance(entries, dict):
+                        entries = [entries]
+                    else:
+                        entries = []
+
+                if not entries:
+                    try:
+                        self._mark_file_processed(jpath, mtime)
+                    except Exception as e:
+                        print("Warning: _mark_file_processed error on empty file:", e)
+                    continue
+
+                for e in entries:
+                    if not isinstance(e, dict):
+                        continue
+                    date = e.get("date", "")
+                    time_str = e.get("time", "")
+                    content = e.get("content", "")
+                    if not content and not date:
+                        continue
+                    rid = _make_id(date, time_str, content)
+                    rec = {
+                        "id": rid,
+                        "date": date,
+                        "time": time_str,
+                        "content": content,
+                        "person": person_folder_identifier,
+                        "pid": pid,
+                        "person_name": person_name
+                    }
+                    collected_records.append((rec, jpath, mtime))
+
+                try:
+                    self._mark_file_processed(jpath, mtime)
+                except Exception as e:
+                    print("Warning: _mark_file_processed error:", e)
+
+            if collected_records:
+                recs_only = [r for (r, _, _) in collected_records]
+                self.upsert(person_folder_identifier, recs_only)
+                for rec, filepath, mtime in collected_records:
+                    try:
+                        self._upsert_record_sqlite(rec, filepath, mtime)
+                    except Exception as e:
+                        print("Warning: _upsert_record_sqlite error:", e)
+
+    def delete_person(self, person: str):
+        pdir = self._person_dir(person)
+        if pdir.exists() and pdir.is_dir():
+            for f in pdir.iterdir():
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+            try:
+                pdir.rmdir()
+            except Exception:
+                pass
+        with self._sqlite_lock:
+            cur = self.conn.cursor()
+            cur.execute("DELETE FROM records WHERE person = ?", (person,))
+            self.conn.commit()

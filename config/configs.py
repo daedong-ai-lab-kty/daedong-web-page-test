@@ -1,3 +1,5 @@
+import os
+
 from config.config_file_loader import ConfigYamlLoader
 
 class WebConfig:
@@ -6,22 +8,24 @@ class WebConfig:
 
         DEFAULT_VERSION = config['web']['default_version']
         print(' - WebConfig DEFAULT_VERSION:', DEFAULT_VERSION)
+
+        self.RAG_DB_ROOT_PATH = config['web']['rag_db_root_path']
         
         self.DOMAIN_TO_FOLDER_MAP = {
-            f'GX_트랙터': f'rag_db/graphrag_{DEFAULT_VERSION}_GX',
-            f'RT_운반로봇_RT100': f'rag_db/graphrag_{DEFAULT_VERSION}_RT100',
-            f'DH_콤바인_DH6135': f'rag_db/graphrag_{DEFAULT_VERSION}_DH6135',
-            f'HX_트랙터_HX1300': f'rag_db/graphrag_{DEFAULT_VERSION}_NEW_HX',
-            f'HX_트랙터_HX1400': f'rag_db/graphrag_{DEFAULT_VERSION}_NEW_HX',
-            f'DRP_이앙기_DRP80': f'rag_db/graphrag_{DEFAULT_VERSION}_DRP80',
-            f'LK_트랙터_LK2805': f'rag_db/graphrag_{DEFAULT_VERSION}_LK',
-            f'NX_트랙터_NX450': f'rag_db/graphrag_{DEFAULT_VERSION}_NX',
-            f'HX_트랙터_HX900': f'rag_db/graphrag_{DEFAULT_VERSION}_HX',
-            f'DK_트랙터_DK450': f'rag_db/graphrag_{DEFAULT_VERSION}_DK',
-            f'지원사업': f'rag_db/graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt', #None, 
-            f'agriculture': f'rag_db/graphrag_{DEFAULT_VERSION}_GX',#None,
-            f'영농일지': f'rag_{DEFAULT_VERSION}_farming_diary', #None
-            f'기타': f'rag_db/graphrag_{DEFAULT_VERSION}_GX', #None
+            f'GX_트랙터': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_GX'),
+            f'RT_운반로봇_RT100': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_RT100'),
+            f'DH_콤바인_DH6135': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_DH6135'), 
+            f'HX_트랙터_HX1300': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_NEW_HX'),  
+            f'HX_트랙터_HX1400': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_NEW_HX'),  
+            f'DRP_이앙기_DRP80': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_DRP80'),  
+            f'LK_트랙터_LK2805': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_LK'), 
+            f'NX_트랙터_NX450': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_NX'), 
+            f'HX_트랙터_HX900': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_HX'), 
+            f'DK_트랙터_DK450': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_DK'),
+            f'지원사업': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt'), #f'rag_db/graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt', #None, 
+            f'agriculture': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_GX'), #None,
+            f'영농일지': os.path.join(self.RAG_DB_ROOT_PATH, f'rag_{DEFAULT_VERSION}_farming_diary'), #None,
+            f'기타': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_GX'), #None,
         }
 
         self.DOMAIN_TO_REFERENCE_MAP = {

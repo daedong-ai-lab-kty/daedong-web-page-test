@@ -59,7 +59,7 @@ Response & API Test
 ============
 
 <details>
-<summary>Web Test</summary>
+<summary>dev, prod test</summary>
 
 * choices=['dev', 'prod', 'test-dev]
     * 'dev': 배포-포트 개발계 통신 검증
