@@ -3,6 +3,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 from starlette.responses import StreamingResponse
+from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 
 import json
 import os
@@ -31,13 +33,68 @@ class ChatRequest(BaseModel):
     model: str
     messages: List[ChatMessage]
 
-def get_farming_db(request: Request):
+# def get_farming_db(request: Request):
 
+#     db = getattr(request.app.state, "farming_db", None)
+#     if db is None:
+#         raise RuntimeError("Farming DB가 초기화되지 않았습니다.")
+#     return db
+
+# @router.post("/farming_test")
+# async def farming_test(chat_req: ChatRequest):
+#     print('')
+
+@router.get("/persons", response_class=JSONResponse)
+async def list_persons(request: Request):
+    """
+    Return list of person folder identifiers (e.g. ['1_taeyong', '2_minsu'])
+    """
     db = getattr(request.app.state, "farming_db", None)
     if db is None:
-        raise RuntimeError("Farming DB가 초기화되지 않았습니다.")
-    return db
+        raise HTTPException(status_code=500, detail="Farming DB not initialized")
+    try:
+        persons = db.list_persons()
+        return persons
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/farming_test")
-async def farming_test(chat_req: ChatRequest):
-    print('')
+@router.get("/all_works_dates", response_class=JSONResponse)
+async def all_works_dates(request: Request, person: str):
+    """
+    Return distinct dates available for given person (strings).
+    """
+    db = getattr(request.app.state, "farming_db", None)
+    if db is None:
+        raise HTTPException(status_code=500, detail="Farming DB not initialized")
+    try:
+        # Query distinct dates for that person
+        # Note: person may be folder id like '1_taeyong' or short name; match on person/pid/person_name columns
+        sql = """
+        SELECT DISTINCT date FROM records
+        WHERE (person = ? OR pid = ? OR person_name = ?)
+        ORDER BY date ASC
+        """
+        rows = db.sql_query(sql, (person, person, person))
+        dates = [r["date"] for r in rows if r.get("date")]
+        return dates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/works", response_class=JSONResponse)
+async def get_works(request: Request, person: str, date: str):
+    """
+    Return rows for person & date (list of dicts).
+    """
+    db = getattr(request.app.state, "farming_db", None)
+    if db is None:
+        raise HTTPException(status_code=500, detail="Farming DB not initialized")
+    try:
+        sql = """
+        SELECT * FROM records
+        WHERE (person = ? OR pid = ? OR person_name = ?) AND date = ?
+        ORDER BY mtime ASC
+        """
+        rows = db.sql_query(sql, (person, person, person, date))
+        return rows
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

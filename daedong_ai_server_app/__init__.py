@@ -1,11 +1,14 @@
 import socket
 import threading
 import os 
+from pathlib import Path
 
 # from flask import Flask
 # from flask_cors import CORS
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from config.configs import web_config, llm_config, rag_config, util_config
 from lance_db.FarmingLanceDBManager import FarmingLanceDBManager
@@ -96,7 +99,7 @@ def create_app(PUBLIC_IP, HOST, PORT):
         # works = get_all_works_date(db, '1_taeyong', '2023-09-22')
         # print('Works:', works)
         # print(" ==> FarmingLanceDBManager 초기화 완료")
-
+    
     @app.on_event("shutdown")
     async def shutdown_event():
         db = getattr(app.state, "farming_db", None)

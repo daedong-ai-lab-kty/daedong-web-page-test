@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --main-bg-color: #f8f9fa;
+            --container-bg-color: #ffffff;
+            --primary-text-color: #212529;
+            --secondary-text-color: #495057;
+            --border-color: #dee2e6;
+            --accent-color: #007bff;
+            --accent-color-hover: #0056b3;
+            --save-button-color: #28a745;
+            --save-button-hover-color: #218838;
+            --font-main: 'Roboto', 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 24px;
+            background-color: var(--main-bg-color);
+            color: var(--primary-text-color);
+            box-sizing: border-box;
+        }
+
+        #chatContainer {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            background-color: var(--container-bg-color);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        #options, #serverSettings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+        
+        #options > div, #serverSettings > div {
+            display: flex;
+            align-items: center;
+        }
+
+        label {
+            margin-right: 12px;
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--secondary-text-color);
+            white-space: nowrap;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            font-family: var(--font-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        #messageBox {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            font-size: 1.2rem; /* 입력창 글자 크기 조정 */
+            line-height: 1.6;
+            border-radius: 6px;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+        
+        button {
+            padding: 14px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #sendButton {
+            width: 100%;
+            background-color: var(--accent-color);
+            margin-bottom: 24px;
+        }
+        
+        #sendButton:hover {
+             background-color: var(--accent-color-hover);
+        }
+
+        #saveSettingsBtn {
+            background-color: var(--save-button-color);
+            font-size: 1rem;
+            padding: 10px 20px;
+            margin-left: 10px;
+            white-space: nowrap;
+        }
+        #saveSettingsBtn:hover {
+            background-color: var(--save-button-hover-color);
+        }
+
+        #response {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 24px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+        }
+        
+        .main-response-area { grid-column: 1 / -1; }
+        .side-info-grid { grid-column: 1 / 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .image-area { grid-column: 2 / 3; grid-row: 2 / 3; display: flex; flex-direction: column; }
+        
+        .response-box {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            resize: none;
+            box-sizing: border-box;
+            background-color: #fdfdfd;
+            font-family: var(--font-main);
+            color: var(--secondary-text-color);
+            /* --- 글자 크기 조정 --- */
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        #responseText1 { 
+            height: 300px; 
+            /* --- 메인 답변 글자 크기 조정 --- */
+            font-size: 1.2rem; 
+            color: var(--primary-text-color);
+            line-height: 1.8;
+        }
+        .side-info-grid textarea { height: 200px; }
+        #graph { width: 100%; height: 100%; min-height: 200px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color); }
+        
+        h3 { font-size: 1.2rem; font-weight: 500; margin-top: 0; margin-bottom: 8px; }
+
+        .loading-container { display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); z-index: 1000; flex-direction: column; }
+        .spinner { border: 12px solid #f3f3f3; border-top: 12px solid var(--accent-color); border-radius: 50%; width: 80px; height: 80px; animation: spin 1s linear infinite; }
+        .loading-text { margin-top: 20px; font-size: 1.5rem; font-weight: 500; color: var(--primary-text-color); }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="chatContainer">
+        <h2>AI Chat Assistant</h2>
+        
+        <div id="serverSettings">
+             <div>
+                <label for="serverAddress">Server Address:</label>
+                <input type="text" id="serverAddress" placeholder="예: http://127.0.0.1:8668">
+            </div>
+             <div>
+                <label for="serverEndpoint">Endpoint:</label>
+                <input type="text" id="serverEndpoint" placeholder="예: /test_server_v2">
+            </div>
+            <div>
+                 <button id="saveSettingsBtn" onclick="saveSettings()">설정 저장</button>
+            </div>
+        </div>
+        
+        <textarea id="messageBox" placeholder="메시지를 입력하세요..."></textarea>
+        
+        <div id="options">
+            <div>
+                <label for="llmVersion">LLM:</label>
+                <select id="llmVersion">
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4-turbo-preview">GPT-4 Turbo Preview</option>
+                </select>
+            </div>
+            <div>
+                <label for="ragVersion">RAG:</label>
+                <select id="ragVersion">
+                    <option value="1.5">Hybrid RAG 1.5: AI 대동이 V2</option>
+                    <option value="2.7">Hybrid RAG 2.7: 통합 V2</option>
+                </select>
+            </div>
+            <div>
+                <label for="searchMethod">Search:</label>
+                <select id="searchMethod">
+                    <option value="local">Local Search</option>
+                    <option value="global">Global Search</option>
+                </select>
+            </div>
+             <div>
+                <label for="language">Language:</label>
+                <select id="language">
+                    <option value="ko">Korean</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+        </div>
+        
+        <button id="sendButton" onclick="sendMessage()">Send Message</button>
+        
+        <div id="response">
+            <div class="main-response-area">
+                 <h3>AI 응답</h3>
+                 <textarea id="responseText1" class="response-box" placeholder="AI의 답변이 여기에 표시됩니다..." readonly></textarea>
+            </div>
+            <div class="side-info-grid">
+                <div>
+                    <h3>참조: Entities</h3>
+                    <textarea id="responseTextEntities" class="response-box" placeholder="참조된 Entities 정보..." readonly></textarea>
+                </div>
+                <div>
+                    <h3>참조: Relationships</h3>
+                    <textarea id="responseTextRelationships" class="response-box" placeholder="참조된 Relationships 정보..." readonly></textarea>
+                </div>
+                 <div>
+                    <h3>참조: Reports</h3>
+                    <textarea id="responseTextReports" class="response-box" placeholder="참조된 Reports 정보..." readonly></textarea>
+                </div>
+                 <div>
+                    <h3>참조: Sources</h3>
+                    <textarea id="responseTextSources" class="response-box" placeholder="참조된 Sources 정보..." readonly></textarea>
+                </div>
+            </div>
+            <div class="image-area">
+                <h3>관련 이미지</h3>
+                <img id="graph" src="https://via.placeholder.com/800x400?text=Reference+Image" alt="Graph Image">
+            </div>
+        </div>
+        
+        <div class="loading-container" id="loadingContainer">
+            <div class="spinner"></div>
+            <p class="loading-text">응답 생성 중...</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        function loadSettings() {
+            const savedAddress = localStorage.getItem('serverAddress');
+            const savedEndpoint = localStorage.getItem('serverEndpoint');
+            document.getElementById('serverAddress').value = savedAddress || 'http://127.0.0.1:8668';
+            document.getElementById('serverEndpoint').value = savedEndpoint || '/kr_ai_server_test'; // FastAPI 엔드포인트 예시로 변경
+        }
+
+        function saveSettings() {
+            const address = document.getElementById('serverAddress').value;
+            const endpoint = document.getElementById('serverEndpoint').value;
+            localStorage.setItem('serverAddress', address);
+            localStorage.setItem('serverEndpoint', endpoint);
+            alert('서버 설정이 저장되었습니다.');
+        }
+
+        function clearResponseAreas() {
+            document.getElementById('responseText1').value = '';
+            document.getElementById('responseTextEntities').value = '';
+            document.getElementById('responseTextRelationships').value = '';
+            document.getElementById('responseTextReports').value = '';
+            document.getElementById('responseTextSources').value = '';
+            document.getElementById("graph").src = "https://via.placeholder.com/800x400?text=Reference+Image";
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('messageBox').value;
+            if (!message.trim()) {
+                alert("메시지를 입력해주세요.");
+                return;
+            }
+
+            const llmVersion = document.getElementById('llmVersion').value;
+            const ragVersion = document.getElementById('ragVersion').value;
+            const language = document.getElementById('language').value;
+            const searchMethod = document.getElementById('searchMethod').value;
+            
+            const serverAddress = document.getElementById('serverAddress').value;
+            const serverEndpoint = document.getElementById('serverEndpoint').value;
+
+            if (!serverAddress || !serverEndpoint) {
+                alert("서버 주소와 엔드포인트를 입력해주세요.");
+                return;
+            }
+            
+            const URL = serverAddress + serverEndpoint;
+            const loadingContainer = document.getElementById('loadingContainer');
+            loadingContainer.style.display = 'flex';
+
+            clearResponseAreas();
+
+            // --- 데이터 전송 포맷 변경 ---
+            // const chatData = {
+            //     "model": llmVersion,
+            //     "messages": [
+            //         {
+            //             "role": "user",
+            //             "content": message
+            //         }
+            //     ],
+            //     // 서버에서 필요한 경우, 다른 파라미터들도 함께 보낼 수 있습니다.
+            //     "rag_version": ragVersion,
+            //     "language": language,
+            //     "search_method": searchMethod
+            // };
+            const chatData = {
+                "model": llmVersion,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": message
+                    }
+                ]
+            };
+
+            fetch(URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(chatData),
+            })
+            .then(response => {
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let receivedText = '', receivedEntities = '', receivedRelationships = '', receivedReports = '', receivedSources = '';
+
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) { 
+                            loadingContainer.style.display = 'none'; 
+                            return; 
+                        }
+                        
+                        const dataChunk = decoder.decode(value, { stream: true });
+                        const lines = dataChunk.split('\n');
+
+                        lines.forEach(line => {
+                            if (line.trim() === '') return;
+                            
+                            // SSE 데이터 파싱
+                            if (line.startsWith('data:')) {
+                                const jsonStr = line.substring(5).trim();
+                                if (jsonStr === '[DONE]') return;
+                                
+                                try {
+                                    const parsedData = JSON.parse(jsonStr);
+                                    const content = parsedData.choices[0]?.delta?.content || '';
+                                    if (content) {
+                                        receivedText += content;
+                                    }
+                                } catch (e) {
+                                    // JSON 파싱 실패 시 원본 데이터 처리 (참조 정보 등)
+                                    if (line.includes("- Entities")) receivedEntities += line + '\n';
+                                    else if (line.includes("- Relationships")) receivedRelationships += line + '\n';
+                                    else if (line.includes("- Reports")) receivedReports += line + '\n';
+                                    else if (line.includes("- Sources")) receivedSources += line + '\n';
+                                    else if (line.includes("http://")) document.getElementById("graph").src = line.trim();
+                                }
+                            }
+                        });
+                        
+                        document.getElementById('responseText1').value = receivedText;
+                        document.getElementById('responseTextEntities').value = receivedEntities;
+                        document.getElementById('responseTextRelationships').value = receivedRelationships;
+                        document.getElementById('responseTextReports').value = receivedReports;
+                        document.getElementById('responseTextSources').value = receivedSources;
+                        
+                        readStream();
+                    });
+                }
+                readStream();
+            })
+            .catch(error => {
+                loadingContainer.style.display = 'none';
+                console.error('Error:', error);
+                alert(`서버 접속에 실패했습니다: ${error}`);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>영농일지 목록</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+  <style>
+    body{font-family:Inter, "Noto Sans KR", system-ui; margin:20px; color:#111;}
+    .wrap{max-width:1100px;margin:0 auto;}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .cols{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    .panel{border:1px solid #e6e6e6;padding:12px;border-radius:8px;background:#fff}
+    .list-item{padding:8px;border-bottom:1px solid #f0f0f0;cursor:pointer;}
+    .list-item:hover{background:#f7fbff;}
+    button{padding:8px 12px;border-radius:6px;border:none;background:#2b6cb0;color:#fff;cursor:pointer}
+    #contentHtml{min-height:300px;padding:12px;overflow:auto;background:#fff;border-radius:8px;border:1px solid #e6e6e6}
+    .muted{color:#666;font-size:0.95rem}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>영농일지</h1>
+      <div>
+        <button id="refreshBtn">새로고침</button>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="panel">
+        <h3>사람 목록</h3>
+        <div id="personsList" aria-live="polite" class="muted">로딩 중...</div>
+      </div>
+
+      <div>
+        <div class="panel" style="margin-bottom:12px;">
+          <h3>해당 사람의 날짜 목록</h3>
+          <div id="datesList" class="muted">사람을 선택하세요</div>
+        </div>
+
+        <div class="panel">
+          <h3>선택한 일지 (렌더된 내용)</h3>
+          <div id="contentHtml" class="" aria-live="polite">선택된 일지가 없습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const apiBase = '/api/farming'; // backend router path
+
+async function fetchJSON(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function loadPersons(){
+  const container = document.getElementById('personsList');
+  container.innerHTML = '로딩 중...';
+  try{
+    const data = await fetchJSON(apiBase + '/persons');
+    if (!Array.isArray(data)) { container.textContent = '데이터 형식 오류'; return; }
+    if (data.length === 0) { container.textContent = '사람이 없습니다.'; return; }
+    container.innerHTML = '';
+    data.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.textContent = p;
+      el.onclick = () => selectPerson(p);
+      container.appendChild(el);
+    });
+  }catch(e){
+    container.textContent = '불러오기 실패: ' + e.message;
+  }
+  document.getElementById('contentHtml').textContent = '사람을 선택하세요.';
+  document.getElementById('datesList').textContent = '';
+}
+
+let currentPerson = null;
+async function selectPerson(person){
+  currentPerson = person;
+  document.getElementById('contentHtml').textContent = '로딩 중...';
+  document.getElementById('datesList').innerHTML = '로딩 중...';
+  try{
+    // get all dates for this person: we can call backend endpoint that returns distinct dates
+    const rows = await fetchJSON(apiBase + '/all_works_dates?person=' + encodeURIComponent(person));
+    // expected rows = ["2023-09-22","2023-09-25", ...] or list of objects
+    const dates = Array.isArray(rows) ? rows : [];
+    const container = document.getElementById('datesList');
+    container.innerHTML = '';
+    if (dates.length === 0) {
+      container.textContent = '해당 사람의 일지가 없습니다.';
+      document.getElementById('contentHtml').textContent = '선택된 일지가 없습니다.';
+      return;
+    }
+    dates.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.textContent = d;
+      el.onclick = () => loadWorksByDate(person, d);
+      container.appendChild(el);
+    });
+    document.getElementById('contentHtml').textContent = '날짜를 선택하세요.';
+  }catch(e){
+    document.getElementById('datesList').textContent = '불러오기 실패: ' + e.message;
+    document.getElementById('contentHtml').textContent = '';
+  }
+}
+
+async function loadWorksByDate(person, date){
+  const content = document.getElementById('contentHtml');
+  content.innerHTML = '로딩 중...';
+  try{
+    const rows = await fetchJSON(apiBase + '/works?person=' + encodeURIComponent(person) + '&date=' + encodeURIComponent(date));
+    if (!Array.isArray(rows) || rows.length === 0) {
+      content.textContent = '해당 날짜의 일지가 없습니다.';
+      return;
+    }
+    // render as markdown list
+    let md = `# ${person} — ${date}\n\n`;
+    rows.forEach(r => {
+      const time = r.time || '';
+      const text = r.content || '';
+      md += `- **${time}** ${text}\n`;
+    });
+    const html = marked.parse(md);
+    content.innerHTML = DOMPurify.sanitize(html);
+  }catch(e){
+    content.textContent = '불러오기 실패: ' + e.message;
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', () => loadPersons());
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadPersons();
+});
+</script>
+</body>
+</html>
