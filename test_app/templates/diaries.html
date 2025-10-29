@@ -1,95 +1,197 @@
-<!DOCTYPE html>
-<html lang="ko">
+<!doctype html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>영농일지 목록</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+  <meta charset="utf-8">
+  <title>Diaries</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body{font-family:Inter, "Noto Sans KR", system-ui; margin:20px; color:#111;}
-    .wrap{max-width:1100px;margin:0 auto;}
-    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-    .cols{display:grid;grid-template-columns:320px 1fr;gap:16px}
-    .panel{border:1px solid #e6e6e6;padding:12px;border-radius:8px;background:#fff}
-    .list-item{padding:8px;border-bottom:1px solid #f0f0f0;cursor:pointer;}
-    .list-item:hover{background:#f7fbff;}
-    button{padding:8px 12px;border-radius:6px;border:none;background:#2b6cb0;color:#fff;cursor:pointer}
-    #contentHtml{min-height:300px;padding:12px;overflow:auto;background:#fff;border-radius:8px;border:1px solid #e6e6e6}
-    .muted{color:#666;font-size:0.95rem}
+    body { font-family: Arial, Helvetica, sans-serif; margin: 16px; }
+    .panel { border: 1px solid #ddd; padding: 12px; margin-bottom: 12px; border-radius: 6px; }
+    .list-item { padding: 6px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+    .list-item:hover { background: #fafafa; }
+    .muted { color: #666; }
+    .pid { color:#2b6cb0; font-weight:600; margin-right:6px; }
+    .name { color:#111; }
+    .sep { color:#aaa; margin:0 6px; }
+    .row { display:flex; gap:8px; align-items:center; margin:6px 0; }
+    input[type="text"], input[type="date"], input[type="time"], textarea { width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; }
+    textarea { min-height: 90px; }
+    button.primary { padding:10px 16px; background:#2b6cb0; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+    button.warn { padding:8px 12px; background:#c53030; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+    button.primary:disabled { opacity:0.6; cursor:not-allowed; }
+    .label { min-width:88px; font-weight:600; color:#333; }
+    .mini { font-size:12px; color:#888; }
+    .success { color:#2f855a; }
+    .error { color:#c53030; }
+    #diaries { white-space: pre-wrap; font-family: monospace; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <h1>영농일지</h1>
-      <div>
-        <button id="refreshBtn">새로고침</button>
+  <h2>영농일지 (Diaries)</h2>
+
+  <div class="panel">
+    <h3>사람 목록</h3>
+    <div id="personsList" aria-live="polite" class="muted">로딩 중...</div>
+  </div>
+
+  <div style="display:flex; gap:12px; align-items:flex-start;">
+    <div style="flex:1;">
+      <div class="panel">
+        <h3>해당 사람의 일지 날짜 목록</h3>
+        <div id="datesList" class="muted">사람을 선택하세요</div>
+      </div>
+
+      <div class="panel">
+        <h3>일지 추가</h3>
+        <div class="row"><span class="label">사람</span><div id="selectedPersonLabel" class="muted">선택되지 않음</div></div>
+        <div class="row"><span class="label">날짜</span><input id="newDate" type="date"></div>
+        <div class="row"><span class="label">시간</span><input id="newTime" type="time" step="60"></div>
+        <div class="row"><span class="label">내용</span><textarea id="newContent" placeholder="작업 내용을 입력하세요"></textarea></div>
+        <div class="row" style="justify-content:flex-end; gap:8px;">
+          <button id="addBtn" class="primary" onclick="submitAddWork()">일지 추가</button>
+        </div>
+        <div id="addStatus" class="mini" aria-live="polite"></div>
       </div>
     </div>
 
-    <div class="cols">
+    <div style="flex:2;">
       <div class="panel">
-        <h3>사람 목록</h3>
-        <div id="personsList" aria-live="polite" class="muted">로딩 중...</div>
-      </div>
-
-      <div>
-        <div class="panel" style="margin-bottom:12px;">
-          <h3>해당 사람의 날짜 목록</h3>
-          <div id="datesList" class="muted">사람을 선택하세요</div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <h3 style="margin:0;">선택한 날짜의 일지 내용</h3>
+          <button id="deleteBtn" class="warn" onclick="confirmDeleteCurrentDate()" style="display:none;">해당 날짜 일지 삭제</button>
         </div>
-
-        <div class="panel">
-          <h3>선택한 일지 (렌더된 내용)</h3>
-          <div id="contentHtml" class="" aria-live="polite">선택된 일지가 없습니다.</div>
-        </div>
+        <div id="contentHtml" aria-live="polite">선택된 일지가 없습니다.</div>
+        <div id="deleteStatus" class="mini" aria-live="polite"></div>
       </div>
     </div>
   </div>
 
+  <div id="diaries" style="display:none"></div>
+
 <script>
-const apiBase = '/api/farming'; // backend router path
-
-async function fetchJSON(url){
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
-}
-
-async function loadPersons(){
-  const container = document.getElementById('personsList');
-  container.innerHTML = '로딩 중...';
-  try{
-    const data = await fetchJSON(apiBase + '/persons');
-    if (!Array.isArray(data)) { container.textContent = '데이터 형식 오류'; return; }
-    if (data.length === 0) { container.textContent = '사람이 없습니다.'; return; }
-    container.innerHTML = '';
-    data.forEach(p => {
-      const el = document.createElement('div');
-      el.className = 'list-item';
-      el.textContent = p;
-      el.onclick = () => selectPerson(p);
-      container.appendChild(el);
-    });
-  }catch(e){
-    container.textContent = '불러오기 실패: ' + e.message;
-  }
-  document.getElementById('contentHtml').textContent = '사람을 선택하세요.';
-  document.getElementById('datesList').textContent = '';
-}
+/*
+  - index.html의 'serverAddress'를 base로 사용하여 절대 URL 호출
+  - CORS 문제 회피 위해 fetch credentials 제거
+  - 사람 표시: '1_taeyong' -> '1 — taeyong'
+  - 일지 추가: POST /add_work { person, date, time, content }
+  - 날짜별 삭제: DELETE /works?person=...&date=...
+*/
 
 let currentPerson = null;
-async function selectPerson(person){
+let currentDate = null;
+
+function joinUrl(base, path) {
+  if (!base) return path || '';
+  const b = base.replace(/\/+$/, '');
+  const p = (path || '').replace(/^\/+/, '');
+  return b + (p ? '/' + p : '');
+}
+
+function splitPersonKey(key) {
+  if (key == null) return { pid:'', name:'' };
+  const s = String(key);
+  const idx = s.indexOf('_');
+  if (idx === -1) return { pid:'', name:s };
+  return { pid: s.slice(0, idx), name: s.slice(idx + 1) };
+}
+
+function displayPersonLabel(key) {
+  const { pid, name } = splitPersonKey(key);
+  if (pid && name) return `${pid} — ${name}`;
+  return key || '';
+}
+
+function getSavedServerAddress() {
+  const fromStorage = localStorage.getItem('serverAddress');
+  if (fromStorage && fromStorage.trim()) return fromStorage.trim();
+  if (window.savedAddress) return window.savedAddress;
+  if (window.API_BASE_URL) return window.API_BASE_URL;
+  return null;
+}
+
+async function resolveBase() {
+  const sync = getSavedServerAddress();
+  if (sync) return sync;
+  const fromEvent = await new Promise(resolve => {
+    let done = false;
+    function onSettings(e) {
+      done = true;
+      document.removeEventListener('settings-loaded', onSettings);
+      const detail = (e && e.detail) || {};
+      const val = detail.serverAddress || detail.savedAddress || detail.apiUrl || window.savedAddress || window.API_BASE_URL || null;
+      resolve(val);
+    }
+    document.addEventListener('settings-loaded', onSettings);
+    setTimeout(() => { if (!done) { document.removeEventListener('settings-loaded', onSettings); resolve(null); } }, 2000);
+  });
+  if (fromEvent) return fromEvent;
+  const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+  return origin;
+}
+
+async function fetchJSONFull(url, options = {}) {
+  console.log('Fetching URL:', url, options.method || 'GET');
+  const res = await fetch(url, { ...options });
+  if (!res.ok) {
+    const text = await res.text().catch(()=> '');
+    const err = new Error('HTTP ' + res.status + ' ' + res.statusText + (text ? ' - ' + text : ''));
+    err.status = res.status;
+    throw err;
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return res.json();
+  return res.text();
+}
+
+/* ===== 조회 로직 ===== */
+
+async function loadPersons() {
+  const personsContainer = document.getElementById('personsList');
+  personsContainer.textContent = '로딩 중...';
+  try {
+    const base = await resolveBase();
+    const url = joinUrl(base, 'persons');
+    const persons = await fetchJSONFull(url);
+    if (!Array.isArray(persons) || persons.length === 0) {
+      personsContainer.textContent = '사람 목록이 없습니다.';
+      return;
+    }
+    personsContainer.innerHTML = '';
+    persons.forEach(p => {
+      const { pid, name } = splitPersonKey(p);
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.setAttribute('data-person', p);
+      el.title = p;
+      el.innerHTML = pid && name
+        ? `<span class="pid">${escapeHtml(pid)}</span><span class="sep">—</span><span class="name">${escapeHtml(name)}</span>`
+        : escapeHtml(p);
+      el.onclick = () => loadDatesForPerson(p);
+      personsContainer.appendChild(el);
+    });
+  } catch (e) {
+    console.error('loadPersons 실패:', e);
+    personsContainer.textContent = '불러오기 실패: ' + (e.message || e);
+  }
+}
+
+async function loadDatesForPerson(person) {
   currentPerson = person;
-  document.getElementById('contentHtml').textContent = '로딩 중...';
-  document.getElementById('datesList').innerHTML = '로딩 중...';
-  try{
-    // get all dates for this person: we can call backend endpoint that returns distinct dates
-    const rows = await fetchJSON(apiBase + '/all_works_dates?person=' + encodeURIComponent(person));
-    // expected rows = ["2023-09-22","2023-09-25", ...] or list of objects
+  currentDate = null;
+  document.getElementById('selectedPersonLabel').textContent = displayPersonLabel(person) || '(선택되지 않음)';
+  setDefaultDateTime();
+
+  const delBtn = document.getElementById('deleteBtn');
+  delBtn.style.display = 'none';
+  document.getElementById('deleteStatus').textContent = '';
+
+  const container = document.getElementById('datesList');
+  container.textContent = '로딩 중...';
+  try {
+    const base = await resolveBase();
+    const url = joinUrl(base, 'all_works_dates') + '?person=' + encodeURIComponent(person);
+    const rows = await fetchJSONFull(url);
     const dates = Array.isArray(rows) ? rows : [];
-    const container = document.getElementById('datesList');
     container.innerHTML = '';
     if (dates.length === 0) {
       container.textContent = '해당 사람의 일지가 없습니다.';
@@ -104,40 +206,186 @@ async function selectPerson(person){
       container.appendChild(el);
     });
     document.getElementById('contentHtml').textContent = '날짜를 선택하세요.';
-  }catch(e){
-    document.getElementById('datesList').textContent = '불러오기 실패: ' + e.message;
+  } catch (e) {
+    console.error('loadDatesForPerson 실패:', e);
+    container.textContent = '불러오기 실패: ' + (e.message || e);
     document.getElementById('contentHtml').textContent = '';
   }
 }
 
-async function loadWorksByDate(person, date){
+async function loadWorksByDate(person, date) {
+  currentPerson = person;
+  currentDate = date;
+  document.getElementById('selectedPersonLabel').textContent = displayPersonLabel(person) || '(선택되지 않음)';
+  const dateInput = document.getElementById('newDate');
+  if (dateInput) dateInput.value = date;
+
+  const delBtn = document.getElementById('deleteBtn');
+  delBtn.style.display = 'inline-block';
+  document.getElementById('deleteStatus').textContent = '';
+
   const content = document.getElementById('contentHtml');
   content.innerHTML = '로딩 중...';
-  try{
-    const rows = await fetchJSON(apiBase + '/works?person=' + encodeURIComponent(person) + '&date=' + encodeURIComponent(date));
+  try {
+    const base = await resolveBase();
+    const url = joinUrl(base, 'works') + '?person=' + encodeURIComponent(person) + '&date=' + encodeURIComponent(date);
+    const rows = await fetchJSONFull(url);
     if (!Array.isArray(rows) || rows.length === 0) {
       content.textContent = '해당 날짜의 일지가 없습니다.';
       return;
     }
-    // render as markdown list
-    let md = `# ${person} — ${date}\n\n`;
+    const label = displayPersonLabel(person);
+    let html = '<h4>' + escapeHtml(label) + ' — ' + escapeHtml(date) + '</h4><ul>';
     rows.forEach(r => {
       const time = r.time || '';
-      const text = r.content || '';
-      md += `- **${time}** ${text}\n`;
+      const text = r.content || r.note || '';
+      html += '<li><strong>' + escapeHtml(time) + '</strong> ' + escapeHtml(text) + '</li>';
     });
-    const html = marked.parse(md);
-    content.innerHTML = DOMPurify.sanitize(html);
-  }catch(e){
-    content.textContent = '불러오기 실패: ' + e.message;
+    html += '</ul>';
+    content.innerHTML = html;
+  } catch (e) {
+    console.error('loadWorksByDate 실패:', e);
+    content.textContent = '불러오기 실패: ' + (e.message || e);
   }
 }
 
-document.getElementById('refreshBtn').addEventListener('click', () => loadPersons());
+/* ===== 추가/삭제 로직 ===== */
 
-window.addEventListener('DOMContentLoaded', () => {
-  loadPersons();
-});
+function setDefaultDateTime() {
+  const dateInput = document.getElementById('newDate');
+  const timeInput = document.getElementById('newTime');
+  if (dateInput && !dateInput.value) {
+    const d = currentDate || new Date().toISOString().slice(0,10);
+    dateInput.value = d;
+  }
+  if (timeInput && !timeInput.value) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    timeInput.value = `${hh}:${mm}`;
+  }
+}
+
+async function submitAddWork() {
+  const status = document.getElementById('addStatus');
+  const btn = document.getElementById('addBtn');
+  status.textContent = '';
+  status.className = 'mini';
+
+  if (!currentPerson) {
+    status.textContent = '사람을 먼저 선택하세요.';
+    status.classList.add('error');
+    return;
+  }
+  const date = (document.getElementById('newDate').value || '').trim();
+  const time = (document.getElementById('newTime').value || '').trim();
+  const content = (document.getElementById('newContent').value || '').trim();
+  if (!date) { status.textContent = '날짜를 입력하세요.'; status.classList.add('error'); return; }
+  if (!time) { status.textContent = '시간을 입력하세요.'; status.classList.add('error'); return; }
+  if (!content) { status.textContent = '내용을 입력하세요.'; status.classList.add('error'); return; }
+
+  try {
+    btn.disabled = true;
+    status.textContent = '저장 중...';
+
+    const base = await resolveBase();
+    const url = joinUrl(base, 'add_work');
+    const payload = { person: currentPerson, date, time, content };
+
+    const result = await fetchJSONFull(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (result && result.ok === false) {
+      status.textContent = '추가 실패: ' + (result.error || '알 수 없는 오류');
+      status.classList.add('error');
+      btn.disabled = false;
+      return;
+    }
+
+    status.textContent = '추가 완료.';
+    status.classList.add('success');
+    document.getElementById('newContent').value = '';
+
+    // 갱신
+    await loadDatesForPerson(currentPerson);
+    const viewDate = date || currentDate;
+    if (viewDate) await loadWorksByDate(currentPerson, viewDate);
+
+  } catch (e) {
+    console.error('submitAddWork 실패:', e);
+    status.textContent = '추가 실패: ' + (e.message || e);
+    status.classList.add('error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function confirmDeleteCurrentDate() {
+  const delStatus = document.getElementById('deleteStatus');
+  delStatus.textContent = '';
+  delStatus.className = 'mini';
+
+  if (!currentPerson || !currentDate) {
+    delStatus.textContent = '사람과 날짜를 먼저 선택하세요.';
+    delStatus.classList.add('error');
+    return;
+  }
+  const label = displayPersonLabel(currentPerson);
+  const ok = window.confirm(`정말로 '${label}'의 ${currentDate} 일지를 모두 삭제할까요?`);
+  if (!ok) return;
+
+  try {
+    delStatus.textContent = '삭제 중...';
+    const base = await resolveBase();
+    const url = joinUrl(base, 'works') + '?person=' + encodeURIComponent(currentPerson) + '&date=' + encodeURIComponent(currentDate);
+    const result = await fetchJSONFull(url, { method: 'DELETE' });
+
+    if (result && result.ok === false) {
+      delStatus.textContent = '삭제 실패: ' + (result.error || '알 수 없는 오류');
+      delStatus.classList.add('error');
+      return;
+    }
+
+    delStatus.textContent = '삭제 완료.';
+    delStatus.classList.add('success');
+
+    // 목록/내용 갱신
+    await loadDatesForPerson(currentPerson);
+    document.getElementById('contentHtml').textContent = '선택된 일지가 없습니다.';
+    currentDate = null;
+    document.getElementById('deleteBtn').style.display = 'none';
+
+  } catch (e) {
+    console.error('confirmDeleteCurrentDate 실패:', e);
+    delStatus.textContent = '삭제 실패: ' + (e.message || e);
+    delStatus.classList.add('error');
+  }
+}
+
+/* ===== 유틸 ===== */
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// init
+(async function init() {
+  try {
+    await loadPersons();
+    setDefaultDateTime();
+  } catch (e) {
+    console.error('init error:', e);
+  }
+})();
 </script>
 </body>
 </html>

@@ -2,10 +2,11 @@ import socket
 import threading
 import os 
 from pathlib import Path
+import time
 
 # from flask import Flask
 # from flask_cors import CORS
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -26,7 +27,36 @@ def create_app(PUBLIC_IP, HOST, PORT):
         allow_methods=["*"],  
         allow_headers=["*"], 
     )
-    
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start_ts = time.time()
+        client = request.client.host if request.client else "unknown"
+        try:
+            # request.url includes path + query params
+            url = str(request.url)
+        except Exception:
+            url = request.url.path
+        # read body safely (body can be consumed once; some endpoints may not expect us to read it)
+        try:
+            body = await request.body()
+            # limit body logged length
+            body_preview = body[:1000] if body else b''
+        except Exception:
+            body_preview = b''
+        print(f'--> {client} {request.method} {url}')
+        if body_preview:
+            try:
+                # try to decode for readable print; fall back to bytes repr
+                print(f'    Body: {body_preview.decode(errors="replace")}')
+            except Exception:
+                print(f'    Body (bytes): {body_preview!r}')
+        # call downstream handler
+        response = await call_next(request)
+        duration_ms = (time.time() - start_ts) * 1000
+        print(f'<-- {request.method} {url} {response.status_code} ({duration_ms:.1f} ms)')
+        return response
+
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
