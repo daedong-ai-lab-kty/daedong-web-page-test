@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>AI Chat Assistant</title>
 
     <!-- Markdown renderer + sanitizer -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <style>
-        :root {
+        :root{
             --main-bg-color: #f8f9fa;
             --container-bg-color: #ffffff;
             --primary-text-color: #212529;
@@ -23,373 +24,464 @@
             --accent-color-hover: #0056b3;
             --save-button-color: #28a745;
             --save-button-hover-color: #218838;
-            --font-main: 'Roboto', 'Noto Sans KR', sans-serif;
+            --muted-button: #6c757d;
+            --muted-button-hover: #5a6268;
+            --font-main: 'Roboto','Noto Sans KR',sans-serif;
         }
 
-        body {
+        body{
             font-family: var(--font-main);
-            margin: 0;
-            padding: 24px;
+            margin:0;
+            padding:24px;
             background-color: var(--main-bg-color);
             color: var(--primary-text-color);
             box-sizing: border-box;
         }
 
-        #chatContainer {
-            width: 100%;
-            max-width: 1200px;
+        .pageWrap{
+            max-width: 1440px;
             margin: 0 auto;
+            display:flex;
+            gap: 16px;
+            align-items:flex-start;
+            padding: 0 8px;
+        }
+
+        #chatContainer{
+            flex:1 1 0;
+            min-width:0;
             background-color: var(--container-bg-color);
             padding: 24px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
-        h2 {
+        h2{
             font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 18px;
-            text-align: center;
+            font-weight:700;
+            margin: 0 0 18px 0;
+            text-align:center;
         }
 
-        #options, #serverSettings {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-        }
-        
-        #options > div, #serverSettings > div {
-            display: flex;
-            align-items: center;
-        }
-
-        label {
-            margin-right: 10px;
-            font-weight: 500;
-            font-size: 0.95rem;
+        label{
+            margin-right:4px;
+            font-weight:500;
+            font-size:0.95rem;
             color: var(--secondary-text-color);
-            white-space: nowrap;
+            white-space:nowrap;
         }
 
-        select, input {
-            width: 100%;
-            padding: 8px;
-            font-size: 1rem;
+        select,input{
+            width:100%;
+            padding:8px;
+            font-size:1rem;
             font-family: var(--font-main);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             background-color: #fff;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.08);
-        }
-
-        #messageBox {
-            width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            font-size: 1.05rem;
-            line-height: 1.6;
-            border-radius: 6px;
-            resize: vertical;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-color);
-            font-family: var(--font-main);
-        }
-        
-        button {
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.25s;
-        }
-
-        #sendButton {
-            width: 100%;
-            background-color: var(--accent-color);
-            margin-bottom: 16px;
-        }
-        
-        #sendButton:hover {
-             background-color: var(--accent-color-hover);
-        }
-
-        #saveSettingsBtn {
-            background-color: var(--save-button-color);
-            font-size: 0.95rem;
-            padding: 8px 12px;
-            margin-left: 8px;
-            white-space: nowrap;
-        }
-        #saveSettingsBtn:hover {
-            background-color: var(--save-button-hover-color);
-        }
-
-        #response {
-            margin-top: 12px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 16px;
-        }
-
-        .response-box {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            transition: border-color .2s, box-shadow .2s;
             box-sizing: border-box;
-            background-color: #fdfdfd;
-            font-family: var(--font-main);
-            color: var(--secondary-text-color);
-            font-size: 1rem;
-            line-height: 1.6;
+        }
+        select:focus,input:focus{
+            outline:none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.08);
         }
 
-        /* Main rendered markdown area */
-        #responseHtml {
-            min-height: 260px;
-            max-height: 540px;
-            overflow: auto;
-            font-size: 1.1rem;
-            color: var(--primary-text-color);
-            line-height: 1.7;
-            background: #fff;
+        #messageBox{
+            width:100%;
+            min-height:120px;
+            padding:12px;
+            font-size:1.05rem;
+            line-height:1.6;
+            border-radius:6px;
+            resize:vertical;
+            margin-bottom:12px;
+            border:1px solid var(--border-color);
         }
 
-        .loading-container { display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.85); z-index: 1000; flex-direction: column; }
-        .spinner { border: 12px solid #f3f3f3; border-top: 12px solid var(--accent-color); border-radius: 50%; width: 80px; height: 80px; animation: spin 1s linear infinite; }
-        .loading-text { margin-top: 20px; font-size: 1.2rem; font-weight: 500; color: var(--primary-text-color); }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        button{
+            padding:12px;
+            font-size:1rem;
+            font-weight:700;
+            border:none;
+            border-radius:6px;
+            color:white;
+            cursor:pointer;
+            transition: background-color .25s;
+        }
 
-        /* small responsiveness */
-        @media (max-width: 900px) {
-            #chatContainer { padding: 16px; }
+        #sendButton{
+            width:100%;
+            background-color:var(--accent-color);
+            margin-bottom:16px;
+        }
+        #sendButton:hover{ background-color:var(--accent-color-hover); }
+
+        #response{
+            margin-top:12px;
+            border-top:1px solid var(--border-color);
+            padding-top:16px;
+        }
+
+        .response-box{
+            width:100%;
+            padding:12px;
+            border:1px solid var(--border-color);
+            border-radius:6px;
+            background-color:#fdfdfd;
+            color:var(--secondary-text-color);
+            font-size:1rem;
+            line-height:1.6;
+            box-sizing: border-box;
+        }
+
+        #responseHtml{
+            min-height:260px;
+            max-height:540px;
+            overflow:auto;
+            font-size:1.1rem;
+            color:var(--primary-text-color);
+            line-height:1.7;
+            background:#fff;
+        }
+
+        .loading-container{ display:none; align-items:center; justify-content:center; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(255,255,255,0.85); z-index:1000; flex-direction:column;}
+        .spinner{ border:12px solid #f3f3f3; border-top:12px solid var(--accent-color); border-radius:50%; width:80px; height:80px; animation:spin 1s linear infinite;}
+        .loading-text{ margin-top:20px; font-size:1.2rem; font-weight:500; color:var(--primary-text-color);}
+        @keyframes spin{ 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+        .footer-actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:center;
+            margin:14px 0 0 0;
+        }
+        #openLLMSettingsBtn{ background-color:var(--muted-button); font-size:.95rem; padding:10px 14px;}
+        #openLLMSettingsBtn:hover{ background-color:var(--muted-button-hover) }
+        .link-btn{ padding:12px 18px; background:#2b6cb0; color:#fff; border-radius:6px; border:none; cursor:pointer; text-decoration:none; display:inline-block; }
+
+        /* SIDE panel: make the background area larger, but ensure inputs are centered and same width */
+        .sideOptions{
+            width: 420px;
+            flex: 0 0 420px;
+        }
+        .sidePanel{
+            position: sticky;
+            top: 16px;
+            background: var(--container-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 22px;               /* bigger padding for larger background */
+            box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+            min-height: 360px;
+            overflow: hidden;            /* crop any overflow on the right (fixes the right-edge artifact) */
+            box-sizing: border-box;
+        }
+        .sidePanel h4{ margin:0 0 12px 0; font-size:1.08rem; }
+
+        /* layout inside the panel:
+           - center the form controls visually
+           - all inputs/selects get the same max-width so they line up
+        */
+        .formCol{ display:flex; flex-direction:column; gap:14px; align-items:center; }
+        .formRow{ display:flex; flex-direction:column; gap:8px; width:100%; align-items:center; box-sizing:border-box; }
+        .formRow label{ align-self:flex-start; margin-left:4px; }
+        .formRow input,
+        .formRow select{
+            width:100%;
+            max-width:360px;            /* keep consistent control width */
+            margin-left:auto;
+            margin-right:auto;
+            box-sizing:border-box;
+            border-radius:8px;
+        }
+
+        /* optional subtle header divider below the '설정' title */
+        .headerDivider{
+            height:1px;
+            background: var(--border-color);
+            margin: 8px 0 12px 0;
+            width:100%;
+            opacity:.95;
+        }
+
+        .divider{ height:1px; background:var(--border-color); margin:6px 0; width:100%; opacity:.95; }
+
+        #saveSettingsBtn{
+            background-color: var(--save-button-color);
+            font-size:0.95rem;
+            padding:12px 16px;
+            width:100%;
+            max-width:360px;
+            align-self:center;
+            border-radius:8px;
+        }
+        #saveSettingsBtn:hover{ background-color:var(--save-button-hover-color); }
+
+        /* hide legacy advanced options */
+        #options[hidden], #options{ display:none !important; }
+
+        @media (max-width:1100px){
+            .pageWrap{ flex-direction:column; }
+            .sideOptions{ width:100%; flex:1 1 auto; }
+            .sidePanel{ position:static; }
         }
     </style>
 </head>
 <body>
-    <div id="chatContainer">
-        <h2>AI Chat Assistant</h2>
-        
-        <div id="serverSettings">
-            <div>
-                <label for="serverAddress">Server Address:</label>
-                <input type="text" id="serverAddress" placeholder="예: http://127.0.0.1:8668">
+    <div class="pageWrap">
+        <!-- Main white card -->
+        <div id="chatContainer">
+            <h2>AI Chat Assistant</h2>
+
+            <textarea id="messageBox" placeholder="메시지를 입력하세요..."></textarea>
+            <button id="sendButton" onclick="sendMessage()">Send Message</button>
+
+            <div id="response">
+                <h3>AI 응답</h3>
+                <div id="responseHtml" class="response-box" aria-live="polite"></div>
+                <div id="inferenceStats" style="margin-top:6px;color:#666;font-size:12px;"></div>
             </div>
-            <div>
-                <label for="serverEndpoint">Endpoint:</label>
-                <input type="text" id="serverEndpoint" placeholder="예: /kr_ai_server_test">
+
+            <div class="loading-container" id="loadingContainer">
+                <div class="spinner"></div>
+                <p class="loading-text">응답 생성 중...</p>
             </div>
-            <div>
-                <button id="saveSettingsBtn" onclick="saveSettings()">설정 저장</button>
+
+            <div class="footer-actions">
+                <!-- <button id="openLLMSettingsBtn" onclick="openLLMSettings()">스크립트 설정</button> -->
+                <!-- <a href="/info" target="_blank" class="link-btn">스크립트 설정</a> -->
+                <a href="/settings_guide" target="_blank" class="link-btn">서버 리스트 세팅</a>
+                <a href="/info" target="_blank" class="link-btn">유저 데이터 세팅</a>
+                <a href="/info" target="_blank" class="link-btn">데이터 리스트 보기</a>
             </div>
-        </div>
-        
-        <textarea id="messageBox" placeholder="메시지를 입력하세요..."></textarea>
-        
-        <div id="options">
-            <div>
-                <label for="llmVersion">LLM:</label>
-                <select id="llmVersion">
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gpt-4-turbo-preview">GPT-4 Turbo Preview</option>
-                </select>
+
+            <!-- legacy advanced options (hidden) -->
+            <div id="options" hidden>
+                <!-- ... -->
             </div>
-            <div>
-                <label for="ragVersion">RAG:</label>
-                <select id="ragVersion">
-                    <option value="1.5">Hybrid RAG 1.5: AI 대동이 V2</option>
-                    <option value="2.7">Hybrid RAG 2.7: 통합 V2</option>
-                </select>
-            </div>
-            <div>
-                <label for="searchMethod">Search:</label>
-                <select id="searchMethod">
-                    <option value="local">Local Search</option>
-                    <option value="global">Global Search</option>
-                </select>
-            </div>
-            <div>
-                <label for="language">Language:</label>
-                <select id="language">
-                    <option value="ko">Korean</option>
-                    <option value="en">English</option>
-                </select>
-            </div>
-        </div>
-        
-        <button id="sendButton" onclick="sendMessage()">Send Message</button>
-        
-        <div id="response">
-            <h3>AI 응답</h3>
-            <div id="responseHtml" class="response-box" aria-live="polite"></div>
-        </div>
-        
-        <div class="loading-container" id="loadingContainer">
-            <div class="spinner"></div>
-            <p class="loading-text">응답 생성 중...</p>
         </div>
 
-        <div style="margin:12px 0;">
-            <a href="/diaries" target="_blank" style="text-decoration:none;">
-              <button style="padding:12px 18px; background:#2b6cb0; color:#fff; border-radius:6px; border:none; cursor:pointer;">
-                영농일지 보기
-              </button>
-            </a>
-        </div>
+        <!-- Side options card (outside main white card) -->
+        <aside class="sideOptions" aria-label="설정 옵션">
+            <div class="sidePanel" role="complementary">
+                <h4>설정</h4>
+
+                <!-- subtle line under header as requested -->
+                <div class="headerDivider" aria-hidden="true"></div>
+
+                <div class="formCol">
+                    <!-- Server Address -->
+                    <div class="formRow">
+                        <label for="serverAddress">Server Address</label>
+                        <input type="text" id="serverAddress" placeholder="예: http://127.0.0.1:8668" />
+                    </div>
+
+                    <!-- Endpoint -->
+                    <div class="formRow">
+                        <label for="serverEndpoint">Endpoint</label>
+                        <input type="text" id="serverEndpoint" placeholder="예: /kr_ai_server_test" />
+                    </div>
+
+                    <!-- divider similar to LLM area -->
+                    <div class="divider" aria-hidden="true"></div>
+
+                    <!-- LLM options (centered & same width) -->
+                    <div class="formRow">
+                        <label for="finalLLM">최종 응답 LLM</label>
+                        <select id="finalLLM" title="최종 응답을 생성할 메인 LLM을 선택">
+                            <option value="gpt">GPT</option>
+                            <option value="clova-x">CLOVA X</option>
+                        </select>
+                    </div>
+
+                    <div class="formRow">
+                        <label for="utilLLM">유틸 LLM</label>
+                        <select id="utilLLM" title="요약/분류/전처리 등 유틸 작업에 사용할 LLM 선택">
+                            <option value="gpt">GPT</option>
+                            <option value="clova-x">CLOVA X</option>
+                        </select>
+                    </div>
+
+                    <button id="saveSettingsBtn" onclick="saveSettings()">설정 저장</button>
+                </div>
+            </div>
+        </aside>
     </div>
-    
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // hide legacy advanced options if present
+        document.addEventListener('DOMContentLoaded', () => {
+            const el = document.getElementById('options');
+            if (el) { el.setAttribute('hidden',''); el.style.display='none'; }
             loadSettings();
         });
 
-        function loadSettings() {
+        function openLLMSettings(){
+            const url = localStorage.getItem('llmSettingsUrl') || '/llm_settings';
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        function loadSettings(){
             const savedAddress = localStorage.getItem('serverAddress');
             const savedEndpoint = localStorage.getItem('serverEndpoint');
-            document.getElementById('serverAddress').value = savedAddress || 'http://127.0.0.1:8668';
-            document.getElementById('serverEndpoint').value = savedEndpoint || '/kr_ai_server_test';
+            const savedFinal = localStorage.getItem('finalLLM');
+            const savedUtil = localStorage.getItem('utilLLM');
+
+            const addrEl = document.getElementById('serverAddress');
+            const endpEl = document.getElementById('serverEndpoint');
+            const finalEl = document.getElementById('finalLLM');
+            const utilEl = document.getElementById('utilLLM');
+
+            if(addrEl) addrEl.value = savedAddress || 'http://127.0.0.1:8668';
+            if(endpEl) endpEl.value = savedEndpoint || '/kr_ai_server_test';
+            if(finalEl) finalEl.value = savedFinal || 'gpt';
+            if(utilEl) utilEl.value = savedUtil || 'gpt';
         }
 
-        function saveSettings() {
-            const address = document.getElementById('serverAddress').value;
-            const endpoint = document.getElementById('serverEndpoint').value;
-            localStorage.setItem('serverAddress', address);
-            localStorage.setItem('serverEndpoint', endpoint);
-            alert('서버 설정이 저장되었습니다.');
+        function saveSettings(){
+            const addr = document.getElementById('serverAddress')?.value || '';
+            const endp = document.getElementById('serverEndpoint')?.value || '';
+            const finalLLM = document.getElementById('finalLLM')?.value || '';
+            const utilLLM = document.getElementById('utilLLM')?.value || '';
+
+            localStorage.setItem('serverAddress', addr);
+            localStorage.setItem('serverEndpoint', endp);
+            localStorage.setItem('finalLLM', finalLLM);
+            localStorage.setItem('utilLLM', utilLLM);
+
+            alert('서버/LLM 설정이 저장되었습니다.');
         }
 
-        function clearResponseAreas() {
-            // Clear rendered markdown
-            document.getElementById('responseHtml').innerHTML = '';
-        }
-
-        function sendMessage() {
-            const message = document.getElementById('messageBox').value;
-            if (!message.trim()) {
-                alert("메시지를 입력해주세요.");
-                return;
+        /* --- streaming/chat logic kept as before --- */
+        function getStatsEl(){
+            let el = document.getElementById('inferenceStats');
+            if(!el){
+                el = document.createElement('div');
+                el.id = 'inferenceStats';
+                el.style.marginTop = '6px';
+                el.style.color = '#666';
+                el.style.fontSize = '12px';
+                const resp = document.getElementById('responseHtml');
+                if(resp && resp.parentNode) resp.parentNode.insertBefore(el, resp.nextSibling);
+                else document.body.appendChild(el);
             }
+            return el;
+        }
 
-            const llmVersion = document.getElementById('llmVersion').value;
-            const ragVersion = document.getElementById('ragVersion').value;
-            const language = document.getElementById('language').value;
-            const searchMethod = document.getElementById('searchMethod').value;
-            
+        function clearResponseAreas(){
+            document.getElementById('responseHtml').innerHTML = '';
+            const s = getStatsEl(); s.textContent = '';
+        }
+
+        function sendMessage(){
+            const message = document.getElementById('messageBox').value;
+            if(!message.trim()){ alert('메시지를 입력해주세요.'); return; }
+
+            const llmVersion = (document.getElementById('llmVersion') || {value:'gpt-4o'}).value;
+            const ragVersion = (document.getElementById('ragVersion') || {value:'2.7'}).value;
+            const language = (document.getElementById('language') || {value:'ko'}).value;
+            const searchMethod = (document.getElementById('searchMethod') || {value:'local'}).value;
+
+            const finalLLM = document.getElementById('finalLLM').value;
+            const utilLLM = document.getElementById('utilLLM').value;
+
             const serverAddress = document.getElementById('serverAddress').value;
             const serverEndpoint = document.getElementById('serverEndpoint').value;
-
-            if (!serverAddress || !serverEndpoint) {
-                alert("서버 주소와 엔드포인트를 입력해주세요.");
-                return;
-            }
-            
+            if(!serverAddress || !serverEndpoint){ alert('서버 주소와 엔드포인트를 입력해주세요.'); return; }
             const URL = serverAddress + serverEndpoint;
-            const loadingContainer = document.getElementById('loadingContainer');
-            loadingContainer.style.display = 'flex';
 
+            const loadingContainer = document.getElementById('loadingContainer');
+            const tStart = performance.now();
+            loadingContainer.style.display = 'flex';
             clearResponseAreas();
 
             const chatData = {
-                "model": llmVersion,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": message
-                    }
-                ],
-                // optional: rag_version, language, search_method can be sent if backend expects them
-                "rag_version": ragVersion,
-                "language": language,
-                "search_method": searchMethod
+                model: llmVersion,
+                messages: [{role:'user', content: message}],
+                rag_version: ragVersion,
+                language: language,
+                search_method: searchMethod,
+                final_llm: finalLLM,
+                util_llm: utilLLM
             };
 
             fetch(URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(chatData),
-            })
-            .then(response => {
-                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(chatData)
+            }).then(response=>{
+                if(!response.ok) throw new Error('HTTP ' + response.status);
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let receivedText = '';
+                let firstContentSeen = false;
 
-                function renderMarkdown(mdText) {
-                    try {
-                        const html = marked.parse(mdText || '');
-                        const clean = DOMPurify.sanitize(html);
-                        document.getElementById('responseHtml').innerHTML = clean;
-                    } catch (e) {
-                        document.getElementById('responseHtml').textContent = mdText;
+                function renderMarkdown(md){
+                    const safe = (md||'').replace(/~~/g,'~\u200B~');
+                    let html;
+                    try{ html = marked.parse(safe); } catch(e){ document.getElementById('responseHtml').textContent = safe; return; }
+                    html = html.replace(/<del>([\s\S]*?)<\/del>/g,'~~$1~~');
+                    const clean = (window.DOMPurify ? DOMPurify.sanitize(html) : html);
+                    document.getElementById('responseHtml').innerHTML = clean;
+                }
+
+                function onFirstContent(){
+                    if(firstContentSeen) return;
+                    firstContentSeen = true;
+                    const ttft = Math.round(performance.now() - tStart);
+                    getStatsEl().textContent = `응답 시작: ${ttft} ms`;
+                    loadingContainer.style.display = 'none';
+                }
+
+                function handleSSELine(line){
+                    if(line.startsWith('data:')){
+                        const jsonStr = line.substring(5).trim();
+                        if(!jsonStr || jsonStr === '[DONE]') return;
+                        try{
+                            const parsed = JSON.parse(jsonStr);
+                            const content = parsed?.choices?.[0]?.delta?.content;
+                            if(content){ onFirstContent(); receivedText += content; renderMarkdown(receivedText); }
+                        }catch(e){}
+                    } else {
+                        try{
+                            const parsed = JSON.parse(line);
+                            const content = parsed?.choices?.[0]?.delta?.content;
+                            if(content){ onFirstContent(); receivedText += content; renderMarkdown(receivedText); }
+                        }catch{
+                            const plain = line;
+                            if(plain && plain.trim()){ onFirstContent(); receivedText += plain; renderMarkdown(receivedText); }
+                        }
                     }
                 }
 
-                function readStream() {
-                    reader.read().then(({ done, value }) => {
-                        if (done) { 
-                            loadingContainer.style.display = 'none'; 
-                            return; 
+                function readStream(){
+                    reader.read().then(({done,value})=>{
+                        if(done){
+                            if(!firstContentSeen) loadingContainer.style.display = 'none';
+                            return;
                         }
-                        
-                        const dataChunk = decoder.decode(value, { stream: true });
-                        const lines = dataChunk.split('\n');
-
-                        lines.forEach(line => {
-                            if (line.trim() === '') return;
-                            
-                            if (line.startsWith('data:')) {
-                                const jsonStr = line.substring(5).trim();
-                                if (jsonStr === '[DONE]') return;
-                                
-                                try {
-                                    const parsedData = JSON.parse(jsonStr);
-                                    const content = parsedData.choices?.[0]?.delta?.content;
-                                    if (content) {
-                                        receivedText += content;
-                                        renderMarkdown(receivedText);
-                                    }
-                                } catch (e) {
-                                    console.debug('Non-JSON chunk or auxiliary data:', line);
-                                }
-                            } else {
-                                try {
-                                    const parsed = JSON.parse(line);
-                                    const content = parsed.choices?.[0]?.delta?.content;
-                                    if (content) {
-                                        receivedText += content;
-                                        renderMarkdown(receivedText);
-                                    }
-                                } catch (e) {
-                                    // ignore non-JSON free text
-                                }
-                            }
-                        });
-                        
+                        const chunk = decoder.decode(value, {stream:true});
+                        const lines = chunk.split('\n');
+                        for(const line of lines){
+                            const trimmed = line.trim();
+                            if(!trimmed) continue;
+                            handleSSELine(trimmed);
+                        }
                         readStream();
-                    }).catch(err => {
+                    }).catch(err=>{
                         loadingContainer.style.display = 'none';
                         console.error('Stream read error:', err);
                         alert('스트리밍을 읽는 중 오류가 발생했습니다: ' + err.message);
                     });
                 }
                 readStream();
-            })
-            .catch(error => {
+            }).catch(err=>{
                 loadingContainer.style.display = 'none';
-                console.error('Error:', error);
-                alert(`서버 접속에 실패했습니다: ${error}`);
+                console.error('Error:', err);
+                alert('서버 접속에 실패했습니다: ' + err);
             });
         }
     </script>

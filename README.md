@@ -74,6 +74,15 @@ python web/ai_daedong_server_communication_test.py --env {dev|prod|test-dev}
 </details>
 
 
+<details>
+<summary>TMS chat save</summary>
+
+```
+python web/tms_agri_dev_api_test.py
+```
+</details>
+
+
 Sample Web Test
 ============
 
