@@ -95,7 +95,7 @@ class DaedongAPIClient:
                 
                 # SSE 형식은 라인 단위로 오는 경우가 많으므로 iter_lines() 사용
                 for line in response.iter_lines():
-
+                    
                     # 빈 줄은 건너뜀
                     if not line:
                         continue
@@ -165,7 +165,7 @@ def main():
         "전라남도에서 받을 수 있는 보조금 정책",
         "올해 영농인이 지원할 수 있는 영농지원사업 추천해줘",
     ]
-
+    
     results = []
     for q in questions_list:
         print('='*50)

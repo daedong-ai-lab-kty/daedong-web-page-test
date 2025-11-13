@@ -64,6 +64,7 @@ class UtilConfig:
 
         self.BUSINESS_LIST_TABLE_NAME = config['util']['business_list_table_name']
 
+
 ## Config
 config_loader = ConfigYamlLoader()
 

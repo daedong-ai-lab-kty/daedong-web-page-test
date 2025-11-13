@@ -86,6 +86,7 @@ async def get_works(request: Request, person: str, date: str):
     """
     Return rows for person & date (list of dicts).
     """
+    
     db = getattr(request.app.state, "farming_db", None)
     if db is None:
         raise HTTPException(status_code=500, detail="Farming DB not initialized")

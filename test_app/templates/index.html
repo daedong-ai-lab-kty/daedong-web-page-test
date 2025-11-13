@@ -38,6 +38,18 @@
             box-sizing: border-box;
         }
 
+        /* User badge shown in top-right — populated by Jinja variable `current_user_name` */
+        .userBadge {
+            display:flex;
+            justify-content:flex-end;
+            align-items:center;
+            margin-bottom:12px;
+            font-size:0.95rem;
+            color:var(--secondary-text-color);
+        }
+        .userBadge .label { margin-right:8px; font-weight:500; color:var(--secondary-text-color); }
+        .userBadge .name { font-weight:700; color:var(--primary-text-color); }
+
         .pageWrap{
             max-width: 1440px;
             margin: 0 auto;
@@ -145,7 +157,7 @@
             line-height:1.7;
             background:#fff;
         }
-
+        
         .loading-container{ display:none; align-items:center; justify-content:center; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(255,255,255,0.85); z-index:1000; flex-direction:column;}
         .spinner{ border:12px solid #f3f3f3; border-top:12px solid var(--accent-color); border-radius:50%; width:80px; height:80px; animation:spin 1s linear infinite;}
         .loading-text{ margin-top:20px; font-size:1.2rem; font-weight:500; color:var(--primary-text-color);}
@@ -197,7 +209,7 @@
             box-sizing:border-box;
             border-radius:8px;
         }
-
+        
         /* optional subtle header divider below the '설정' title */
         .headerDivider{
             height:1px;
@@ -206,9 +218,9 @@
             width:100%;
             opacity:.95;
         }
-
+        
         .divider{ height:1px; background:var(--border-color); margin:6px 0; width:100%; opacity:.95; }
-
+        
         #saveSettingsBtn{
             background-color: var(--save-button-color);
             font-size:0.95rem;
@@ -231,6 +243,17 @@
     </style>
 </head>
 <body>
+    <!-- User display (injected by Jinja via `current_user_name`) -->
+    <div class="userBadge" role="status" aria-live="polite">
+        {% if current_user_name and current_user_name != 'Guest' %}
+            <span class="label">Logged in as:</span>
+            <span class="name">{{ current_user_name }}</span>
+        {% else %}
+            <span class="label">User:</span>
+            <span class="name">Guest</span>
+        {% endif %}
+    </div>
+
     <div class="pageWrap">
         <!-- Main white card -->
         <div id="chatContainer">
@@ -318,12 +341,12 @@
             if (el) { el.setAttribute('hidden',''); el.style.display='none'; }
             loadSettings();
         });
-
+        
         function openLLMSettings(){
             const url = localStorage.getItem('llmSettingsUrl') || '/llm_settings';
             window.open(url, '_blank', 'noopener,noreferrer');
         }
-
+        
         function loadSettings(){
             const savedAddress = localStorage.getItem('serverAddress');
             const savedEndpoint = localStorage.getItem('serverEndpoint');
@@ -354,7 +377,7 @@
 
             alert('서버/LLM 설정이 저장되었습니다.');
         }
-
+        
         /* --- streaming/chat logic kept as before --- */
         function getStatsEl(){
             let el = document.getElementById('inferenceStats');
@@ -370,7 +393,7 @@
             }
             return el;
         }
-
+        
         function clearResponseAreas(){
             document.getElementById('responseHtml').innerHTML = '';
             const s = getStatsEl(); s.textContent = '';
@@ -427,7 +450,7 @@
                     const clean = (window.DOMPurify ? DOMPurify.sanitize(html) : html);
                     document.getElementById('responseHtml').innerHTML = clean;
                 }
-
+                
                 function onFirstContent(){
                     if(firstContentSeen) return;
                     firstContentSeen = true;
@@ -435,7 +458,7 @@
                     getStatsEl().textContent = `응답 시작: ${ttft} ms`;
                     loadingContainer.style.display = 'none';
                 }
-
+                
                 function handleSSELine(line){
                     if(line.startsWith('data:')){
                         const jsonStr = line.substring(5).trim();

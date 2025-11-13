@@ -65,10 +65,11 @@ Response & API Test
     * 'dev': 배포-포트 개발계 통신 검증
     * 'prod': 배포-포트 운영계 통신 검증
     * 'test-dev': 테스트-포트 운영계 통신 검증
+    * Save response as Excel
 
 ```
 docker exec -it daedong_ai_server bash
-python web/ai_daedong_server_communication_test.py --env {dev|prod|test-dev}
+python daedong_api/ai_daedong_server_communication_test.py --env {dev|prod|test-dev}
 ```
 
 </details>
@@ -78,7 +79,7 @@ python web/ai_daedong_server_communication_test.py --env {dev|prod|test-dev}
 <summary>TMS chat save</summary>
 
 ```
-python web/tms_agri_dev_api_test.py
+python daedong_api/chatbot_save_test.py
 ```
 </details>
 
