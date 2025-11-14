@@ -1,3 +1,5 @@
 web:
   rag_db_root_path: rag_db
   default_version: 2.7
+  base_server_address: http://172.16.10.57:8000
+  base_endpoint: /kr_farming_call_api

@@ -5,76 +5,31 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>설정 가이드 — Server Address / Endpoint</title>
   <style>
-    :root{
-      --bg:#f8f9fa;
-      --card:#fff;
-      --text:#212529;
-      --muted:#6c757d;
-      --accent:#007bff;
-      --accent-hover:#0056b3;
-      --border:#e9ecef;
-      font-family: "Roboto", "Noto Sans KR", sans-serif;
-    }
+    /* (스타일은 기존과 동일) */
+    :root{ --bg:#f8f9fa; --card:#fff; --text:#212529; --muted:#6c757d; --accent:#007bff; --accent-hover:#0056b3; --border:#e9ecef; font-family: "Roboto", "Noto Sans KR", sans-serif; }
     body{margin:0;background:var(--bg);color:var(--text);padding:28px;}
     .wrap{max-width:980px;margin:0 auto;display:flex;gap:20px;align-items:flex-start}
     .card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,0.06);border:1px solid var(--border);width:100%}
     h1{margin:0 0 6px 0;font-size:1.25rem}
-    p.lead{color:var(--muted);margin:0 0 16px 0}
     .example{display:grid;gap:12px;margin-top:12px}
     .field{display:flex;align-items:center;gap:10px}
     .field label{min-width:110px;color:var(--muted);font-weight:600}
-    .value{
-      flex:1;
-      background:#fbfbfb;
-      border:1px solid var(--border);
-      padding:10px 12px;
-      border-radius:8px;
-      font-family:monospace;
-      font-size:0.98rem;
-      color:var(--text);
-      box-sizing:border-box;
-    }
-    .btn{
-      background:var(--accent);
-      color:white;
-      border:none;
-      padding:10px 12px;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:700;
-    }
+    .value{flex:1;background:#fbfbfb;border:1px solid var(--border);padding:10px 12px;border-radius:8px;font-family:monospace;font-size:0.98rem;color:var(--text);box-sizing:border-box;}
+    .btn{background:var(--accent);color:white;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:700;}
     .btn.secondary{background:#6c757d}
     .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--border);font-weight:600}
-    .btn:active{transform:translateY(1px)}
-    /* controls: center aligned */
     .controls{display:flex;gap:10px;margin-top:18px;align-items:center;justify-content:center;}
     .note{margin-top:14px;color:var(--muted);font-size:0.95rem}
     a.inline{color:var(--accent);text-decoration:none;font-weight:600}
     .divider{height:1px;background:var(--border);margin:16px 0;border-radius:4px}
     .footer{margin-top:12px;color:var(--muted);font-size:0.9rem}
-    table.meta {
-      width:100%;
-      border-collapse:collapse;
-      margin-top:12px;
-      font-size:0.95rem;
-    }
-    table.meta th, table.meta td {
-      padding:10px 8px;
-      border-bottom:1px solid var(--border);
-      text-align:left;
-      vertical-align:middle;
-    }
-    table.meta th { color:var(--muted); font-weight:700; font-size:0.9rem; }
-    .meta-actions{ display:flex; gap:8px; align-items:center; }
+    table.meta {width:100%;border-collapse:collapse;margin-top:12px;font-size:0.95rem;}
+    table.meta th, table.meta td {padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle;}
     .meta-server, .meta-endpoint { font-family: monospace; background:#fbfbfb; padding:6px 8px; border-radius:6px; border:1px solid var(--border); display:inline-block; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .debug { margin-top:14px; background:#111; color:#eee; padding:12px; border-radius:8px; font-family:monospace; font-size:0.9rem; max-height:220px; overflow:auto; white-space:pre-wrap; }
+    .debug .title { font-weight:700; margin-bottom:8px; color:#ffd; }
     .badge { display:inline-block; padding:4px 8px; border-radius:999px; background:#eef6ff; color:var(--accent); font-weight:700; font-size:0.85rem; margin-left:8px; }
-    @media(max-width:720px){
-      .wrap{padding:0 12px;flex-direction:column}
-      .field{flex-direction:column;align-items:stretch}
-      .field label{width:auto}
-      .controls{flex-direction:column;align-items:stretch}
-      table.meta th, table.meta td{ font-size:0.9rem; }
-    }
+    @media(max-width:720px){ .wrap{padding:0 12px;flex-direction:column} .field{flex-direction:column;align-items:stretch} .controls{flex-direction:column;align-items:stretch} table.meta th, table.meta td{ font-size:0.9rem; } }
   </style>
 </head>
 <body>
@@ -82,129 +37,181 @@
     <div class="card" role="main" aria-labelledby="title">
       <h1 id="title">Server Address / Endpoint 설정 가이드</h1>
 
+      <!-- Inject server-provided API base URL & endpoint into client JS -->
+      <script>
+        // These are rendered by Jinja from server context (client_server.py passes api_base_url/api_endpoint)
+        window.API_BASE_URL = "{{ api_base_url|e }}";
+        window.API_BASE_ENDPOINT = "{{ api_endpoint|e }}";
+      </script>
+
       <div class="example" aria-live="polite">
-        <div class="field" aria-hidden="false">
+        <div class="field">
           <label for="exampleServer">Server Address</label>
-          <!-- filled from localStorage (or fallback default) -->
-          <div id="exampleServer" class="value" aria-live="polite">--</div>
+          <div id="exampleServer" class="value">--</div>
           <button class="btn" id="copyServer" aria-label="Server Address 복사">복사</button>
         </div>
 
-        <div class="field" aria-hidden="false">
+        <div class="field">
           <label for="exampleEndpoint">Endpoint</label>
-          <!-- filled from localStorage (or fallback default) -->
-          <div id="exampleEndpoint" class="value" aria-live="polite">--</div>
+          <div id="exampleEndpoint" class="value">--</div>
           <button class="btn" id="copyEndpoint" aria-label="Endpoint 복사">복사</button>
         </div>
 
         <div class="divider" aria-hidden="true"></div>
 
-        <div style="margin-top:4px">
-          <h2 style="margin:0 0 8px 0;font-size:1rem">URL + Endpoint 메타 정보 <span id="currentBadge" class="badge" aria-hidden="true" style="display:none"></span></h2>
+        <table class="meta" aria-label="server metadata">
+          <thead>
+            <tr><th>Server Address</th><th>Endpoint</th><th>서버 이름(메타)</th><th>액션</th></tr>
+          </thead>
+          <tbody>
+            <tr data-server="http://172.16.10.57:8000" data-endpoint="/kr_ai_server_test">
+              <td><span class="meta-server">http://172.16.10.57:8000</span></td>
+              <td><span class="meta-endpoint">/kr_ai_server_test</span></td>
+              <td>AI 대동이 한국 서버</td>
+              <td><button class="btn ghost apply-row" data-server="http://172.16.10.57:8000" data-endpoint="/kr_ai_server_test">적용</button></td>
+            </tr>
+            <tr data-server="http://172.16.10.57:8000" data-endpoint="/kr_farming_call_api">
+              <td><span class="meta-server">http://172.16.10.57:8000</span></td>
+              <td><span class="meta-endpoint">/kr_farming_call_api</span></td>
+              <td>영농콜 테스트 서버</td>
+              <td><button class="btn ghost apply-row" data-server="http://172.16.10.57:8000" data-endpoint="/kr_farming_call_api">적용</button></td>
+            </tr>
+          </tbody>
+        </table>
 
-          <table class="meta" aria-label="server metadata">
-            <thead>
-              <tr>
-                <th style="width:30%">Server Address</th>
-                <th style="width:20%">Endpoint</th>
-                <th style="width:30%">서버 이름(메타)</th>
-                <th style="width:20%">액션</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr data-server="http://172.16.10.57:8000" data-endpoint="/kr_ai_server_test">
-                <td><span class="meta-server">http://172.16.10.57:8000</span></td>
-                <td><span class="meta-endpoint">/kr_ai_server_test</span></td>
-                <td>AI 대동이 한국 서버</td>
-                <td class="meta-actions">
-                  <button class="btn ghost apply-row" data-server="http://172.16.10.57:8000" data-endpoint="/kr_ai_server_test" title="적용">적용</button>
-                </td>
-              </tr>
-              <!-- Add more rows here if needed -->
-            </tbody>
-          </table>
-        </div>
+        <div class="divider"></div>
 
-        <div class="divider" aria-hidden="true"></div>
+        <div class="controls"><button class="btn secondary" id="openMain">메인 페이지 열기</button></div>
 
-        <div class="controls">
-          <button class="btn secondary" id="openMain">메인 페이지 열기</button>
-        </div>
+        <!-- Debug log area to surface 0attempted URLs and server responses -->
+        <!-- <div id="debug" class="debug" aria-live="polite" role="status">
+          <div class="title">Debug log (requests & responses)</div>
+          <div id="debugLog">Starting debug log...\n</div>
+        </div> -->
       </div>
     </div>
   </div>
 
   <script>
     (function(){
-      // fallback defaults
       const DEFAULT_SERVER = 'http://172.16.10.57:8000';
       const DEFAULT_ENDPOINT = '/api';
 
-      // read saved values from localStorage (these are the "기본으로 세팅된" values to show)
-      function getSavedServer() {
-        try { return localStorage.getItem('serverAddress') || DEFAULT_SERVER; }
-        catch (e) { return DEFAULT_SERVER; }
-      }
-      function getSavedEndpoint() {
-        try { return localStorage.getItem('serverEndpoint') || DEFAULT_ENDPOINT; }
-        catch (e) { return DEFAULT_ENDPOINT; }
+      function getSavedServer(){ try { return localStorage.getItem('serverAddress') || DEFAULT_SERVER; } catch(e){ return DEFAULT_SERVER; } }
+      function getSavedEndpoint(){ try { return localStorage.getItem('serverEndpoint') || DEFAULT_ENDPOINT; } catch(e){ return DEFAULT_ENDPOINT; } }
+
+      function updateDisplay(){
+        document.getElementById('exampleServer').textContent = getSavedServer();
+        document.getElementById('exampleEndpoint').textContent = getSavedEndpoint();
       }
 
-      // update the display areas with current saved values (or default)
-      function updateDisplay() {
-        const server = getSavedServer();
-        const endpoint = getSavedEndpoint();
-        const serverEl = document.getElementById('exampleServer');
-        const endpointEl = document.getElementById('exampleEndpoint');
-        const badge = document.getElementById('currentBadge');
-
-        if (serverEl) serverEl.textContent = server;
-        if (endpointEl) endpointEl.textContent = endpoint;
-
-        // show badge that indicates these are the current saved values
-        // if (badge) {
-        //   badge.style.display = 'inline-block';
-        //   // badge.textContent = '현재 설정';
-        // }
+      function normalizeEndpointRaw(raw){
+        if(!raw) return '';
+        return raw.replace(/^\/+|\/+$/g, '');
       }
 
-      // copy current displayed values (not the hardcoded examples)
-      document.getElementById('copyServer').addEventListener('click', async () => {
+      function appendDebug(msg){
+        try {
+          const el = document.getElementById('debugLog');
+          const time = new Date().toISOString();
+          el.textContent += `\n[${time}] ${msg}`;
+          const dbg = document.getElementById('debug');
+          dbg.scrollTop = dbg.scrollHeight;
+          console.log('[settings-guide-debug]', msg);
+        } catch(e){
+          console.log('[settings-guide-debug-fail]', e, msg);
+        }
+      }
+
+      function buildCandidateUrls() {
+        const candidates = [];
+        const apiBaseRaw = window.API_BASE_URL || '';
+        const apiBase = apiBaseRaw ? apiBaseRaw.replace(/\/+$/, '') : '';
+        const apiEndpointRaw = window.API_BASE_ENDPOINT || '';
+        const apiEndpoint = normalizeEndpointRaw(apiEndpointRaw);
+
+        if(apiBase && apiEndpoint) candidates.push(`${apiBase}/${apiEndpoint}/set_web_config`);
+        if(apiBase) candidates.push(`${apiBase}/set_web_config`);
+        if(apiEndpoint) candidates.push(`/${apiEndpoint}/set_web_config`);
+        candidates.push(`/set_web_config`);
+        appendDebug(`Built candidate URLs: ${candidates.join(' | ')}`);
+        return candidates;
+      }
+
+      async function tryPostJson(url, body){
+        appendDebug(`Trying POST ${url} with body ${JSON.stringify(body)}`);
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+            credentials: 'same-origin'
+          });
+          const text = await res.text().catch(()=>null);
+          let parsed = null;
+          try { parsed = text ? JSON.parse(text) : null; } catch(e){ parsed = text; }
+          appendDebug(`Response from ${url}: status=${res.status}, body=${text ? (typeof parsed === 'string' ? parsed : JSON.stringify(parsed)) : '<empty>'}`);
+          return { ok: res.ok, status: res.status, parsed, url };
+        } catch (e) {
+          appendDebug(`Fetch error for ${url}: ${String(e)}`);
+          return { ok:false, error: String(e), url };
+        }
+      }
+
+      async function callSetWebConfig(base, endpoint){
+        const body = { base_server_address: base, base_endpoint: endpoint };
+        const candidates = buildCandidateUrls();
+        for(const url of candidates){
+          const r = await tryPostJson(url, body);
+          if(r.ok) { appendDebug(`Succeeded on ${url}`); return r; }
+          appendDebug(`Attempt to ${url} failed: ok=${r.ok} status=${r.status || 'N/A'} error=${r.error || ''}`);
+        }
+        return { ok:false, message:'all attempts failed', tried:candidates };
+      }
+
+      document.getElementById('copyServer').addEventListener('click', async ()=>{
         const val = getSavedServer();
         try { await navigator.clipboard.writeText(val); alert('Server Address가 복사되었습니다: ' + val); }
-        catch (e) { prompt('복사 실패, 아래 값을 수동 복사하세요:', val); }
+        catch(e){ prompt('복사 실패, 아래 값을 수동 복사하세요:', val); }
       });
 
-      document.getElementById('copyEndpoint').addEventListener('click', async () => {
+      document.getElementById('copyEndpoint').addEventListener('click', async ()=>{
         const val = getSavedEndpoint();
         try { await navigator.clipboard.writeText(val); alert('Endpoint가 복사되었습니다: ' + val); }
-        catch (e) { prompt('복사 실패, 아래 값을 수동 복사하세요:', val); }
+        catch(e){ prompt('복사 실패, 아래 값을 수동 복사하세요:', val); }
       });
 
-      // open main page
-      document.getElementById('openMain').addEventListener('click', () => {
-        window.location.href = '/';
-      });
+      document.getElementById('openMain').addEventListener('click', ()=> window.location.href = '/');
 
-      // table row actions: apply (apply stores into localStorage and navigates)
-      document.querySelectorAll('.apply-row').forEach(btn => {
-        btn.addEventListener('click', () => {
+      document.querySelectorAll('.apply-row').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
           const s = btn.getAttribute('data-server') || '';
           const ep = btn.getAttribute('data-endpoint') || '';
           if(!s || !ep){ alert('유효한 서버/엔드포인트가 없습니다.'); return; }
-          try {
-            localStorage.setItem('serverAddress', s);
-            localStorage.setItem('serverEndpoint', ep);
-            alert('설정이 저장되었습니다: ' + s + ' ' + ep + '\n메인 페이지로 이동합니다.');
+          if(!confirm(`서버 설정을 변경하고 메인 페이지에 적용하시겠습니까?\n\nServer: ${s}\nEndpoint: ${ep}`)) return;
+
+          appendDebug(`User requested apply: server=${s} endpoint=${ep}`);
+          const res = await callSetWebConfig(s, ep);
+          if(res.ok){
+            try {
+              localStorage.setItem('serverAddress', s);
+              localStorage.setItem('serverEndpoint', ep);
+              localStorage.setItem('serverSettingsSaved','true');
+            } catch(e){ appendDebug('localStorage save failed: ' + String(e)); }
+            alert('서버 설정이 업데이트되어 메인 페이지로 이동합니다.');
             window.location.href = '/';
-          } catch (e) {
-            alert('설정 저장에 실패했습니다: ' + e);
+            return;
           }
+
+          appendDebug('All attempts failed. See console/network for details.');
+          console.error('set_web_config failed:', res);
+          alert('서버 설정 파일 업데이트 실패. 콘솔/디버그 박스를 확인하세요.');
         });
       });
 
-      // initialize displayed values on load
       updateDisplay();
+      appendDebug('DEBUG: window.API_BASE_URL=' + (window.API_BASE_URL || '<empty>') + ' window.API_BASE_ENDPOINT=' + (window.API_BASE_ENDPOINT || '<empty>'));
+      appendDebug('Initial candidate URLs = ' + buildCandidateUrls().join(' | '));
     })();
   </script>
 </body>

@@ -42,9 +42,9 @@ config_loader = ConfigYamlLoader()
 # user_config = UserInfoConfig(user_config)
 
 main_user_base_url = web_config.DOMAIN_TO_FOLDER_MAP['영농일지']
-main_user_id = 1
-main_user_name = 'taeyong'
-main_user_config_path = os.path.join(main_user_base_url, f"{main_user_id}_{main_user_name}", "user_config.yaml")
+main_user_id = 2
+main_user_name = 'minsu'
+main_user_config_path = os.path.join(main_user_base_url, f"2_minsu", "user_config.yaml")
 print('- main_user_config_path:', main_user_config_path)
 user_config = config_loader.load_config(main_user_config_path)
 user_config = UserInfoConfig(user_config)

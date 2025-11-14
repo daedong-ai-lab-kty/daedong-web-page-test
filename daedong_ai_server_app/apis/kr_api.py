@@ -283,4 +283,62 @@ async def kr_ai_server(chat_req: ChatRequest):
         media_type='text/event-stream'
     )
 
+@router.post("/kr_farming_call_api")
+async def kr_farming_call_api(chat_req: ChatRequest):
+# def kr_ai_server_test(chat_req: ChatRequest):
+
+    ## Messages
+    # model = request.json.get("model")
+    # messages = request.json.get("messages")
+    model = chat_req.model
+    messages = chat_req.messages
+    
+    print(f'Model: {model}')
+    print(f'Messages: {messages}')
+
+    ## Input parsing
+    query = message_parsing(messages, recent_message_num=2)
+    print(f' ==> Query:\n{query}')
+    
+    ## LLM
+    load_dotenv()
+    llm_config['llm']['api_key'] = os.getenv('token')
+    # print(config['llm']['api_key'])
+    
+    llm = get_llm(llm_config)
+    
+    ## Routing
+    domains = web_config.KR_DOMAINS
+    domain_routing_response = query_domain_routing(query, domains, llm, llm_config)
+    domain_info = get_domain_info(domain_routing_response)
+
+    reference = domain_info['reference']
+    root_folder = domain_info['root_folder']
+    domain = domain_info['domain_routing_response']
+    print(" - Selected Domain:", domain)
+
+    ## Business Support
+    if domain == '영농일지_조회':
+        sql_filter = sql_extraction(query, llm, llm_config)
+        async_response_stream = await business_list_filtering(sql_filter, llm, llm_config, \
+            stream=True, table_name=util_config.BUSINESS_LIST_TABLE_NAME, text_path=root_folder)
+    if domain == '영농일지_삽입':
+        sql_filter = sql_extraction(query, llm, llm_config)
+        async_response_stream = await business_list_filtering(sql_filter, llm, llm_config, \
+            stream=True, table_name=util_config.BUSINESS_LIST_TABLE_NAME, text_path=root_folder)
+    if domain == '영농일지_삭제':
+        sql_filter = sql_extraction(query, llm, llm_config)
+        async_response_stream = await business_list_filtering(sql_filter, llm, llm_config, \
+            stream=True, table_name=util_config.BUSINESS_LIST_TABLE_NAME, text_path=root_folder)
+    if domain == '영농일지_수정':
+        sql_filter = sql_extraction(query, llm, llm_config)
+        async_response_stream = await business_list_filtering(sql_filter, llm, llm_config, \
+            stream=True, table_name=util_config.BUSINESS_LIST_TABLE_NAME, text_path=root_folder)
+    
+    return StreamingResponse(
+        async_stream_generator(reference=reference, async_data_source=async_response_stream), 
+        media_type='text/event-stream'
+    )
+
+
 

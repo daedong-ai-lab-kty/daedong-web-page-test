@@ -94,7 +94,8 @@
   - Clicking "유저 선택" stores the person key into localStorage as "selectedPerson"
     and dispatches a "user-selected" CustomEvent with detail { person } so other scripts
     (e.g., chatbot) can pick it up to personalize behavior.
-  - Visual feedback is shown in #userSelectStatus.
+  - Additionally: when "유저 선택" is clicked, fetch the user's user_config from server
+    and request the server to update config/user_configs.py main_user_id/name accordingly.
 */
 
 let currentPerson = null;
@@ -255,7 +256,7 @@ function markSelectedPersonInList(person) {
 }
 
 /* Handler for the new "유저 선택" button */
-function handleUserSelectClick(person) {
+async function handleUserSelectClick(person) {
   try {
     localStorage.setItem('selectedPerson', person);
   } catch (e) {
@@ -277,6 +278,39 @@ function handleUserSelectClick(person) {
     setTimeout(()=> {
       if (status) { status.textContent = ''; status.className = 'mini'; }
     }, 2500);
+  }
+
+  // --- 추가 동작: 선택한 유저의 user_config를 서버에서 가져와서 서버에 main_user로 설정 요청 ---
+  try {
+    const base = await resolveBase();
+    const urlGet = joinUrl(base, 'person_user_config') + '?person=' + encodeURIComponent(person);
+    const userInfo = await fetchJSONFull(urlGet);
+    // userInfo expected: { id, name, email, farm_id, location, location_name }
+    if (userInfo && (userInfo.id || userInfo.name)) {
+      // 요청: 서버에 main_user 업데이트를 요청 (파일 쓰기)
+      const urlSet = joinUrl(base, 'set_main_user');
+      const resp = await fetchJSONFull(urlSet, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userInfo.id, name: userInfo.name })
+      });
+      // resp expected: { ok: true, message: '...' }
+      if (resp && resp.ok) {
+        // optional UI feedback
+        const st = document.getElementById('userSelectStatus');
+        if (st) { st.textContent = '메인 유저가 업데이트되었습니다.'; st.className = 'mini success'; setTimeout(()=> { st.textContent=''; st.className='mini'; }, 2500); }
+        // dispatch an event that config changed
+        document.dispatchEvent(new CustomEvent('main-user-updated', { detail: { id: userInfo.id, name: userInfo.name, person } }));
+      } else {
+        console.warn('set_main_user 응답 실패', resp);
+        const st = document.getElementById('userSelectStatus');
+        if (st) { st.textContent = '서버에 메인 유저 업데이트 실패'; st.className = 'mini error'; setTimeout(()=> { st.textContent=''; st.className='mini'; }, 3000); }
+      }
+    } else {
+      console.warn('서버에서 유저 정보를 찾지 못함:', userInfo);
+    }
+  } catch (e) {
+    console.error('handleUserSelectClick - background set main user failed:', e);
   }
 }
 

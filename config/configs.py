@@ -24,7 +24,10 @@ class WebConfig:
             f'DK_트랙터_DK450': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_DK'),
             f'지원사업': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt'), #f'rag_db/graphrag_{DEFAULT_VERSION}_support_business/input/support_project_list.txt', #None, 
             f'agriculture': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_GX'), #None,
-            f'영농일지': os.path.join(self.RAG_DB_ROOT_PATH, f'rag_{DEFAULT_VERSION}_farming_diary'), #None,
+            f'영농일지_조회': os.path.join(self.RAG_DB_ROOT_PATH, f'rag_{DEFAULT_VERSION}_farming_diary'), #None,
+            f'영농일지_삽입': os.path.join(self.RAG_DB_ROOT_PATH, f'rag_{DEFAULT_VERSION}_farming_diary'), #None,
+            f'영농일지_수정': os.path.join(self.RAG_DB_ROOT_PATH, f'rag_{DEFAULT_VERSION}_farming_diary'), #None,
+            f'영농일지_삭제': os.path.join(self.RAG_DB_ROOT_PATH, f'rag_{DEFAULT_VERSION}_farming_diary'), #None,
             f'기타': os.path.join(self.RAG_DB_ROOT_PATH, f'graphrag_{DEFAULT_VERSION}_GX'), #None,
         }
 
@@ -47,6 +50,11 @@ class WebConfig:
 
         self.KR_DOMAINS = list(self.DOMAIN_TO_FOLDER_MAP.keys())
         print(' - KR_DOMAINS:', self.KR_DOMAINS)
+
+        self.BASE_SERVER_ADDRESS = "http://172.16.10.57:8000"
+        self.BASE_ENDPOINT = "kr_ai_server_test"
+        # self.BASE_FINAL_LLM = "gpt"
+        # self.BASE_UTIL_LLM = "gpt"
 
 
 class RagConfig:

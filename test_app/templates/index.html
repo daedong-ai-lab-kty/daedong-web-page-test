@@ -38,7 +38,6 @@
             box-sizing: border-box;
         }
 
-        /* User badge shown in top-right — populated by Jinja variable `current_user_name` */
         .userBadge {
             display:flex;
             justify-content:flex-end;
@@ -157,8 +156,19 @@
             line-height:1.7;
             background:#fff;
         }
-        
-        .loading-container{ display:none; align-items:center; justify-content:center; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(255,255,255,0.85); z-index:1000; flex-direction:column;}
+
+        .loading-container{
+            display:none;
+            align-items:center;
+            justify-content:center;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color: rgba(255,255,255,0.85);
+            z-index:1000;
+        }
         .spinner{ border:12px solid #f3f3f3; border-top:12px solid var(--accent-color); border-radius:50%; width:80px; height:80px; animation:spin 1s linear infinite;}
         .loading-text{ margin-top:20px; font-size:1.2rem; font-weight:500; color:var(--primary-text-color);}
         @keyframes spin{ 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
@@ -174,7 +184,6 @@
         #openLLMSettingsBtn:hover{ background-color:var(--muted-button-hover) }
         .link-btn{ padding:12px 18px; background:#2b6cb0; color:#fff; border-radius:6px; border:none; cursor:pointer; text-decoration:none; display:inline-block; }
 
-        /* SIDE panel: make the background area larger, but ensure inputs are centered and same width */
         .sideOptions{
             width: 420px;
             flex: 0 0 420px;
@@ -185,32 +194,27 @@
             background: var(--container-bg-color);
             border: 1px solid var(--border-color);
             border-radius: 14px;
-            padding: 22px;               /* bigger padding for larger background */
+            padding: 22px;
             box-shadow: 0 8px 22px rgba(0,0,0,0.08);
             min-height: 360px;
-            overflow: hidden;            /* crop any overflow on the right (fixes the right-edge artifact) */
+            overflow: hidden;
             box-sizing: border-box;
         }
         .sidePanel h4{ margin:0 0 12px 0; font-size:1.08rem; }
 
-        /* layout inside the panel:
-           - center the form controls visually
-           - all inputs/selects get the same max-width so they line up
-        */
         .formCol{ display:flex; flex-direction:column; gap:14px; align-items:center; }
         .formRow{ display:flex; flex-direction:column; gap:8px; width:100%; align-items:center; box-sizing:border-box; }
         .formRow label{ align-self:flex-start; margin-left:4px; }
         .formRow input,
         .formRow select{
             width:100%;
-            max-width:360px;            /* keep consistent control width */
+            max-width:360px;
             margin-left:auto;
             margin-right:auto;
             box-sizing:border-box;
             border-radius:8px;
         }
-        
-        /* optional subtle header divider below the '설정' title */
+
         .headerDivider{
             height:1px;
             background: var(--border-color);
@@ -218,9 +222,9 @@
             width:100%;
             opacity:.95;
         }
-        
+
         .divider{ height:1px; background:var(--border-color); margin:6px 0; width:100%; opacity:.95; }
-        
+
         #saveSettingsBtn{
             background-color: var(--save-button-color);
             font-size:0.95rem;
@@ -243,9 +247,8 @@
     </style>
 </head>
 <body>
-    <!-- Inject server-provided API base URL into client JS.
-         If api_base_url is empty, client will fallback to origin or localStorage.
-         This variable is rendered by Jinja as api_base_url in the template context. -->
+    <!-- Inject server-provided API base URL & endpoint into client JS.
+         These variables are rendered by Jinja as api_base_url and api_endpoint in the template context. -->
     <script>
       // api_base_url injected by server (may be empty string)
       window.API_BASE_URL = "{{ api_base_url|e }}";
@@ -253,6 +256,9 @@
         // make existing resolveBase/loadSettings see this value
         window.savedAddress = window.API_BASE_URL;
       }
+      // api_endpoint injected by server (may be empty string)
+      window.API_BASE_ENDPOINT = "{{ api_endpoint|e }}";
+
       // allow query-param overrides: ?api_base=... or ?api_port=...
       (function(){
         try {
@@ -273,7 +279,6 @@
       })();
     </script>
 
-    <!-- User display (injected by Jinja via `current_user_name`) -->
     <div class="userBadge" role="status" aria-live="polite">
         {% if current_user_name and current_user_name != 'Guest' %}
             <span class="label">Logged in as:</span>
@@ -285,7 +290,6 @@
     </div>
 
     <div class="pageWrap">
-        <!-- Main white card -->
         <div id="chatContainer">
             <h2>AI Chat Assistant</h2>
 
@@ -304,44 +308,31 @@
             </div>
 
             <div class="footer-actions">
-                <!-- <button id="openLLMSettingsBtn" onclick="openLLMSettings()">스크립트 설정</button> -->
-                <!-- <a href="/info" target="_blank" class="link-btn">스크립트 설정</a> -->
                 <a href="/settings_guide" target="_blank" class="link-btn">서버 리스트 세팅</a>
                 <a href="/info" target="_blank" class="link-btn">유저 데이터 세팅</a>
                 <a href="/info" target="_blank" class="link-btn">데이터 리스트 보기</a>
             </div>
 
-            <!-- legacy advanced options (hidden) -->
-            <div id="options" hidden>
-                <!-- ... -->
-            </div>
+            <div id="options" hidden></div>
         </div>
 
-        <!-- Side options card (outside main white card) -->
         <aside class="sideOptions" aria-label="설정 옵션">
             <div class="sidePanel" role="complementary">
                 <h4>설정</h4>
-
-                <!-- subtle line under header as requested -->
                 <div class="headerDivider" aria-hidden="true"></div>
-
                 <div class="formCol">
-                    <!-- Server Address -->
                     <div class="formRow">
                         <label for="serverAddress">Server Address</label>
                         <input type="text" id="serverAddress" placeholder="예: http://127.0.0.1:8668" />
                     </div>
 
-                    <!-- Endpoint -->
                     <div class="formRow">
                         <label for="serverEndpoint">Endpoint</label>
                         <input type="text" id="serverEndpoint" placeholder="예: /kr_ai_server_test" />
                     </div>
 
-                    <!-- divider similar to LLM area -->
                     <div class="divider" aria-hidden="true"></div>
 
-                    <!-- LLM options (centered & same width) -->
                     <div class="formRow">
                         <label for="finalLLM">최종 응답 LLM</label>
                         <select id="finalLLM" title="최종 응답을 생성할 메인 LLM을 선택">
@@ -365,18 +356,12 @@
     </div>
 
     <script>
-        // hide legacy advanced options if present
         document.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById('options');
             if (el) { el.setAttribute('hidden',''); el.style.display='none'; }
             loadSettings();
         });
-        
-        function openLLMSettings(){
-            const url = localStorage.getItem('llmSettingsUrl') || '/llm_settings';
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
-        
+
         function loadSettings(){
             const savedAddress = localStorage.getItem('serverAddress');
             const savedEndpoint = localStorage.getItem('serverEndpoint');
@@ -388,11 +373,29 @@
             const finalEl = document.getElementById('finalLLM');
             const utilEl = document.getElementById('utilLLM');
 
-            // prefer localStorage, then injected API_BASE_URL, then hardcoded fallback
-            if(addrEl) addrEl.value = savedAddress || window.savedAddress || window.API_BASE_URL || 'http://127.0.0.1:8668';
-            if(endpEl) endpEl.value = savedEndpoint || '/kr_ai_server_test';
+            const serverDefaultAddr = window.API_BASE_URL || '';
+            const serverDefaultEndp = window.API_BASE_ENDPOINT || '';
+
+            // If user has explicitly saved settings previously, prefer those.
+            const userSaved = localStorage.getItem('serverSettingsSaved') === 'true';
+
+            if(addrEl) {
+                if (userSaved && savedAddress) addrEl.value = savedAddress;
+                else addrEl.value = serverDefaultAddr || 'http://127.0.0.1:8668';
+            }
+            if(endpEl) {
+                if (userSaved && savedEndpoint) endpEl.value = savedEndpoint;
+                else endpEl.value = serverDefaultEndp || '/kr_ai_server_test';
+            }
             if(finalEl) finalEl.value = savedFinal || 'gpt';
             if(utilEl) utilEl.value = savedUtil || 'gpt';
+        }
+
+        function joinUrl(base, path) {
+            if (!base) return path || '';
+            const b = String(base).replace(/\/+$/, '');      // remove trailing slashes from base
+            const p = (path || '').replace(/^\/+/, '');      // remove leading slashes from path
+            return b + (p ? '/' + p : '');
         }
 
         function saveSettings(){
@@ -405,64 +408,39 @@
             localStorage.setItem('serverEndpoint', endp);
             localStorage.setItem('finalLLM', finalLLM);
             localStorage.setItem('utilLLM', utilLLM);
+            // mark that the user explicitly saved settings
+            localStorage.setItem('serverSettingsSaved', 'true');
 
             alert('서버/LLM 설정이 저장되었습니다.');
-        }
-        
-        /* --- streaming/chat logic kept as before --- */
-        function getStatsEl(){
-            let el = document.getElementById('inferenceStats');
-            if(!el){
-                el = document.createElement('div');
-                el.id = 'inferenceStats';
-                el.style.marginTop = '6px';
-                el.style.color = '#666';
-                el.style.fontSize = '12px';
-                const resp = document.getElementById('responseHtml');
-                if(resp && resp.parentNode) resp.parentNode.insertBefore(el, resp.nextSibling);
-                else document.body.appendChild(el);
-            }
-            return el;
-        }
-        
-        function clearResponseAreas(){
-            document.getElementById('responseHtml').innerHTML = '';
-            const s = getStatsEl(); s.textContent = '';
         }
 
         function sendMessage(){
             const message = document.getElementById('messageBox').value;
             if(!message.trim()){ alert('메시지를 입력해주세요.'); return; }
 
-            const llmVersion = (document.getElementById('llmVersion') || {value:'gpt-4o'}).value;
-            const ragVersion = (document.getElementById('ragVersion') || {value:'2.7'}).value;
-            const language = (document.getElementById('language') || {value:'ko'}).value;
-            const searchMethod = (document.getElementById('searchMethod') || {value:'local'}).value;
-
             const finalLLM = document.getElementById('finalLLM').value;
             const utilLLM = document.getElementById('utilLLM').value;
 
-            // serverAddress now defaults to injected API_BASE_URL (set by server) if available
             const serverAddress = document.getElementById('serverAddress').value;
             const serverEndpoint = document.getElementById('serverEndpoint').value;
             if(!serverAddress || !serverEndpoint){ alert('서버 주소와 엔드포인트를 입력해주세요.'); return; }
-            const URL = serverAddress + serverEndpoint;
+            const URL = joinUrl(serverAddress, serverEndpoint) // serverAddress + serverEndpoint;
 
             const loadingContainer = document.getElementById('loadingContainer');
             const tStart = performance.now();
             loadingContainer.style.display = 'flex';
-            clearResponseAreas();
+            document.getElementById('responseHtml').innerHTML = '';
 
             const chatData = {
-                model: llmVersion,
+                model: (document.getElementById('llmVersion') || {value:'gpt-4o'}).value,
                 messages: [{role:'user', content: message}],
-                rag_version: ragVersion,
-                language: language,
-                search_method: searchMethod,
+                rag_version: (document.getElementById('ragVersion') || {value:'2.7'}).value,
+                language: (document.getElementById('language') || {value:'ko'}).value,
+                search_method: (document.getElementById('searchMethod') || {value:'local'}).value,
                 final_llm: finalLLM,
                 util_llm: utilLLM
             };
-
+                
             fetch(URL, {
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
@@ -478,19 +456,19 @@
                     const safe = (md||'').replace(/~~/g,'~\u200B~');
                     let html;
                     try{ html = marked.parse(safe); } catch(e){ document.getElementById('responseHtml').textContent = safe; return; }
-                    html = html.replace(/<del>([\s\S]*?)<\/del>/g,'~~$1~~');
                     const clean = (window.DOMPurify ? DOMPurify.sanitize(html) : html);
                     document.getElementById('responseHtml').innerHTML = clean;
                 }
-                
+
                 function onFirstContent(){
                     if(firstContentSeen) return;
                     firstContentSeen = true;
                     const ttft = Math.round(performance.now() - tStart);
-                    getStatsEl().textContent = `응답 시작: ${ttft} ms`;
+                    const s = document.getElementById('inferenceStats');
+                    if(s) s.textContent = `응답 시작: ${ttft} ms`;
                     loadingContainer.style.display = 'none';
                 }
-                
+
                 function handleSSELine(line){
                     if(line.startsWith('data:')){
                         const jsonStr = line.substring(5).trim();
