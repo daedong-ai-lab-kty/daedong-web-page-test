@@ -243,6 +243,36 @@
     </style>
 </head>
 <body>
+    <!-- Inject server-provided API base URL into client JS.
+         If api_base_url is empty, client will fallback to origin or localStorage.
+         This variable is rendered by Jinja as api_base_url in the template context. -->
+    <script>
+      // api_base_url injected by server (may be empty string)
+      window.API_BASE_URL = "{{ api_base_url|e }}";
+      if (window.API_BASE_URL) {
+        // make existing resolveBase/loadSettings see this value
+        window.savedAddress = window.API_BASE_URL;
+      }
+      // allow query-param overrides: ?api_base=... or ?api_port=...
+      (function(){
+        try {
+          const params = new URLSearchParams(location.search);
+          const qbase = params.get('api_base');
+          const qport = params.get('api_port');
+          if (qbase) { window.API_BASE_URL = qbase; window.savedAddress = qbase; }
+          else if (qport) {
+            const originBase = window.API_BASE_URL || (location.protocol + '//' + location.hostname);
+            try {
+              const url = new URL(originBase);
+              url.port = qport;
+              window.API_BASE_URL = url.toString().replace(/\/$/, '');
+              window.savedAddress = window.API_BASE_URL;
+            } catch(e){}
+          }
+        } catch(e){}
+      })();
+    </script>
+
     <!-- User display (injected by Jinja via `current_user_name`) -->
     <div class="userBadge" role="status" aria-live="polite">
         {% if current_user_name and current_user_name != 'Guest' %}
@@ -358,7 +388,8 @@
             const finalEl = document.getElementById('finalLLM');
             const utilEl = document.getElementById('utilLLM');
 
-            if(addrEl) addrEl.value = savedAddress || 'http://127.0.0.1:8668';
+            // prefer localStorage, then injected API_BASE_URL, then hardcoded fallback
+            if(addrEl) addrEl.value = savedAddress || window.savedAddress || window.API_BASE_URL || 'http://127.0.0.1:8668';
             if(endpEl) endpEl.value = savedEndpoint || '/kr_ai_server_test';
             if(finalEl) finalEl.value = savedFinal || 'gpt';
             if(utilEl) utilEl.value = savedUtil || 'gpt';
@@ -411,6 +442,7 @@
             const finalLLM = document.getElementById('finalLLM').value;
             const utilLLM = document.getElementById('utilLLM').value;
 
+            // serverAddress now defaults to injected API_BASE_URL (set by server) if available
             const serverAddress = document.getElementById('serverAddress').value;
             const serverEndpoint = document.getElementById('serverEndpoint').value;
             if(!serverAddress || !serverEndpoint){ alert('서버 주소와 엔드포인트를 입력해주세요.'); return; }

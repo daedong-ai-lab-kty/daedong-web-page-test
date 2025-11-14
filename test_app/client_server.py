@@ -11,8 +11,10 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config.user_configs import user_config
+
 # try:
-#     from config import user_config as _uc_mod
+#     # from config import user_config as _uc_mod
+#     from config.user_configs import user_config
 # except Exception:
 #     _uc_mod = None
 
@@ -62,6 +64,8 @@ templates = Jinja2Templates(directory="test_app/templates")
 async def index(request: Request):
 
     u = _load_user_context()
+    # api_base_url = getattr(request.app.state, "api_base_url", "")
+
     context = {
         "request": request,
         "current_user_name": u.get("name"),
@@ -70,6 +74,7 @@ async def index(request: Request):
         "current_user_farm_id": u.get("farm_id"),
         "current_user_location": u.get("location"),
         "current_user_location_name": u.get("location_name"),
+        # "api_base_url": api_base_url,
     }
     print('context:', context)
     return templates.TemplateResponse("index.html", context)
@@ -88,8 +93,15 @@ if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to bind (default: 0.0.0.0 or $HOST)")
     parser.add_argument("--port", type=int, default=int(8001), help="Port to bind (default: 8559 or $PORT)")
     parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload (useful for development).")
+    # parser.add_argument("--api_host", type=str, default="127.0.0.1", help="API host (no scheme). Combined with --api-port.")
+    # parser.add_argument("--api_port", type=int, default=8000, help="API port (combined with --api-host).")
     args = parser.parse_args()
 
+    # api_base_url = f"http://{args.api_host}:{args.api_port}" # http://127.0.0.1:8668
+    # print(' - api base url:', api_base_url)
+
+    # app.state.api_base_url = api_base_url
+    
     import uvicorn
 
     # Run uvicorn with parsed args; allows overriding port via CLI or environment variable PORT

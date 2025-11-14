@@ -1,4 +1,4 @@
-# lance_db/FarmingLanceDBManager.py
+# -*- coding: utf-8 -*-
 import os
 import json
 import hashlib
@@ -28,6 +28,13 @@ try:
     _FAISS_AVAILABLE = True
 except Exception:
     _FAISS_AVAILABLE = False
+
+# Optional YAML support for per-person user_config.yaml
+try:
+    import yaml
+except Exception:
+    yaml = None  # fall back to JSON if yaml not available
+
 
 def _sanitize_person(name: str) -> str:
     return "".join(c for c in name if c.isalnum() or c in ("_", "-")).strip() or "person"
@@ -166,12 +173,110 @@ class FarmingLanceDBManager:
         return self._person_dir(person) / "faiss.index"
 
     # -----------------------
+    # Per-person user_config.yaml helpers
+    # -----------------------
+    def _user_config_path(self, person: str) -> Path:
+        """
+        Return the path for per-person user_config.yaml inside the person's folder.
+        """
+        return self._person_dir(person) / "user_config.yaml"
+
+    def load_user_config(self, person: str) -> Optional[Dict[str, Any]]:
+        """
+        Load per-person user_config.yaml (or fall back to meta.json's 'user' key).
+        Returns dict with user fields or None if not found/parse error.
+        """
+        u_path = self._user_config_path(person)
+        if u_path.exists():
+            try:
+                raw = u_path.read_text(encoding="utf-8")
+                if yaml:
+                    data = yaml.safe_load(raw) or {}
+                else:
+                    # fallback to JSON parsing
+                    data = json.loads(raw) if raw.strip() else {}
+                # Accept either top-level 'user' or flat fields
+                if isinstance(data, dict):
+                    if "user" in data and isinstance(data["user"], dict):
+                        return data["user"]
+                    # if file itself is flat user dict
+                    # normalize to expected keys
+                    user_keys = {k: data.get(k) for k in ("id", "name", "email", "farm_id", "location", "location_name") if k in data}
+                    if user_keys:
+                        return user_keys
+                return None
+            except Exception as e:
+                print(f"[load_user_config] failed to parse {u_path}: {e}")
+                return None
+        # fallback: try reading meta.json 'user' key
+        mpath = self._meta_path(person)
+        if mpath.exists():
+            try:
+                raw = mpath.read_text(encoding="utf-8")
+                meta = json.loads(raw) if raw.strip() else {}
+                if isinstance(meta, dict) and "user" in meta and isinstance(meta["user"], dict):
+                    return meta["user"]
+            except Exception:
+                pass
+        return None
+
+    def save_user_config(self, person: str, user_dict: Dict[str, Any]) -> bool:
+        """
+        Save provided user_dict into person's user_config.yaml.
+        If yaml module available, write YAML; else write JSON.
+        Returns True on success.
+        """
+        u_path = self._user_config_path(person)
+        _ensure_dir(u_path.parent)
+        # Normalize simple types (avoid non-serializable objects)
+        to_write = {"user": {
+            "id": user_dict.get("id"),
+            "name": user_dict.get("name"),
+            "email": user_dict.get("email"),
+            "farm_id": user_dict.get("farm_id"),
+            "location": user_dict.get("location"),
+            "location_name": user_dict.get("location_name"),
+        }}
+        try:
+            if yaml:
+                # allow_unicode to keep non-ascii names
+                u_path.write_text(yaml.safe_dump(to_write, sort_keys=False, allow_unicode=True), encoding="utf-8")
+            else:
+                u_path.write_text(json.dumps(to_write, ensure_ascii=False, indent=2), encoding="utf-8")
+            return True
+        except Exception as e:
+            print(f"[save_user_config] failed to write {u_path}: {e}")
+            return False
+
+    def get_person_user_info(self, person: str) -> Dict[str, Any]:
+        """
+        Higher-level accessor that returns a normalized user dict for a person.
+        It prefers per-person user_config.yaml, then meta.json, then returns an empty dict.
+        """
+        u = self.load_user_config(person)
+        if u:
+            # ensure keys exist
+            return {
+                "id": u.get("id"),
+                "name": u.get("name"),
+                "email": u.get("email"),
+                "farm_id": u.get("farm_id"),
+                "location": u.get("location"),
+                "location_name": u.get("location_name"),
+            }
+        # fallback: return minimal skeleton
+        return {"id": None, "name": None, "email": None, "farm_id": None, "location": None, "location_name": None}
+
+    # -----------------------
     # Meta / embeddings
     # -----------------------
     def _load_meta(self, person: str) -> Dict[str, Any]:
         p = self._meta_path(person)
         if p.exists():
-            return json.loads(p.read_text(encoding="utf-8"))
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                return {"count": 0}
         return {"count": 0}
 
     def _save_meta(self, person: str, meta: Dict[str, Any]):

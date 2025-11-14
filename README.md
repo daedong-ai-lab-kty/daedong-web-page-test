@@ -102,6 +102,6 @@ Sample Web Test
 
 ```
 docker exec -it daedong_ai_server bash
-python test_app/client_server.py
+python test_app/client_server.py 
 ```
 
