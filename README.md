@@ -1,29 +1,34 @@
 Docker & Server Commands
 ============
 
+<details>
+<summary>Run Server</summary>
+
 ### - Run Server
 
 * 최신 버전
+    * 3.37.114.2 AWS 서버 허용 port = 8666
 
 ```
-## Docker Network
+## 1. Docker Network
 docker network create daedong_ai_server_network
 
-## 기존 이미지 삭제
+## 2. 기존 이미지 삭제
 docker stop daedong_ai_server
 docker rmi -f daedong_ai_server_env
 
-## Docker Build Image
-### E.g. docker build --build-arg SERVER_PORT=8001 -t daedong_ai_server_env -f Dockerfile.server .
+## 3. Docker Build Image
+### E.g. docker build --build-arg SERVER_PORT=8666 -t daedong_ai_server_env -f Dockerfile.server .
 docker build --build-arg SERVER_PORT={PORT} -t daedong_ai_server_env -f Dockerfile.server .
 
-## Build '.env': {token}
+## 4. Build '.env': {token}
 
-## Docker Run Container
+## 5. Docker Run Container
 export PUBLIC_IP=$(curl -s ifconfig.me)
-### E.g. docker run --rm -d --name daedong_ai_server -p 8001:8001 --network daedong_ai_server_network -e PUBLIC_IP=$PUBLIC_IP daedong_ai_server_env
+### E.g. docker run --rm -d --name daedong_ai_server -p 8666:8666 --network daedong_ai_server_network -e PUBLIC_IP=$PUBLIC_IP daedong_ai_server_env
 docker run --rm -d --name daedong_ai_server -p {SERVER_PORT}:{SERVER_PORT} --network daedong_ai_server_network -e PUBLIC_IP=$PUBLIC_IP daedong_ai_server_env
 
+## 6. Log
 docker logs -f daedong_ai_server
 ```
 
@@ -37,6 +42,11 @@ docker logs -f daedong_ai_server
 pip install openai==1.58.1
 python3 server.py
 ```
+
+</details>
+
+<details>
+<summary>Close Server</summary>
 
 ### - Close Server
 
@@ -53,6 +63,8 @@ docker rmi -f daedong_ai_server_env
 ### E.g. docker stop rag_250902
 ### E.g. docker rm rag_250902
 ```
+
+</details>
 
 
 Response & API Test
@@ -81,6 +93,7 @@ python daedong_api/ai_daedong_server_communication_test.py --env {dev|prod|test-
 ```
 python daedong_api/chatbot_save_test.py
 ```
+
 </details>
 
 
@@ -88,6 +101,7 @@ Sample Web Test
 ============
 
 ```
+docker exec -it daedong_ai_server bash
 python test_app/client_server.py
 ```
 

@@ -1,3 +1,3 @@
 from flask import Blueprint, request, Response
 
-from configs.config import WebConfig
+# from configs.config import WebConfig

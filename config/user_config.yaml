@@ -1,5 +1,6 @@
 user:
   id: 1
   name: "taeyong"
+  email: "test@naver.com"
   farm_id: 1
   location: 47

@@ -82,3 +82,4 @@ rag_config = RagConfig(rag_config)
 util_config_path = 'config/util_config.yaml'
 util_config = config_loader.load_config(util_config_path)
 util_config = UtilConfig(util_config)
+

@@ -6,11 +6,6 @@ class UserInfoConfig:
 
     def __init__(self, config):
 
-        self.ID = config['user']['id']
-        self.NAME = config['user']['name']
-        self.FARM_ID = config['user']['farm_id']
-        self.LOCATION = config['user']['location']
-
         self.sido_map_full = {
             11: "서울특별시",
             26: "부산광역시",
@@ -31,9 +26,18 @@ class UserInfoConfig:
             50: "제주특별자치도"
         }
 
+        self.ID = config['user']['id']
+        self.NAME = config['user']['name']
+        self.EMAIL = config['user']['email']
+        self.FARM_ID = config['user']['farm_id']
+        self.LOCATION = config['user']['location']
+        self.LOCATION_NAME = self.sido_map_full[self.LOCATION]
+
 ## Config
 config_loader = ConfigYamlLoader()
 
 user_config_path = 'config/user_config.yaml'
 user_config = config_loader.load_config(user_config_path)
 user_config = UserInfoConfig(user_config)
+
+

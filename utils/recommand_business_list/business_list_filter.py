@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from lance_db.LanceDB import LanceDB
 from utils.recommand_business_list.business_list_filter_prompt import get_business_list_filter_prompt
